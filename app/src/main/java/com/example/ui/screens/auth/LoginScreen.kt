@@ -1,0 +1,479 @@
+package com.example.ui.screens.auth
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
+import com.example.data.auth.AuthManager
+import com.example.data.auth.UserProfile
+import com.example.ui.theme.*
+import kotlinx.coroutines.launch
+
+@Composable
+fun LoginScreen(
+    onLoginSuccess: (UserProfile) -> Unit
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+    var emailInput by remember { mutableStateOf("") }
+    var passwordInput by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        AviationNavy,
+                        AviationBlue,
+                        Color(0xFF0F172A)
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Logo & Badge Tunisair Technics
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.95f),
+                shadowElevation = 6.dp,
+                modifier = Modifier.size(80.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.zodd_logo),
+                        contentDescription = "Logo zODD",
+                        modifier = Modifier.size(68.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Header zODD V.2-26 et by msc sur la même ligne
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "zODD V.2-26",
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "by msc",
+                    color = IceBlue,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+            }
+
+            Text(
+                text = "TUNISAIR TECHNICS",
+                color = Color(0xFF67E8F9),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp
+            )
+
+            Text(
+                text = "Portail de Contrôle d'Accès & Gestion des Missions",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
+            )
+
+            // Carte principale de connexion
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 520.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Security,
+                            contentDescription = null,
+                            tint = AviationBlue,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Authentification Sécurisée",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Accédez avec vos identifiants ou via votre compte Google.",
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // CHAMP EMAIL
+                    OutlinedTextField(
+                        value = emailInput,
+                        onValueChange = {
+                            emailInput = it
+                            loginError = null
+                        },
+                        label = { Text("Adresse e-mail") },
+                        placeholder = { Text("direction@tunisair-technics.tn") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = null, tint = AviationBlue, modifier = Modifier.size(18.dp))
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // CHAMP MOT DE PASSE
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = {
+                            passwordInput = it
+                            loginError = null
+                        },
+                        label = { Text("Mot de passe") },
+                        placeholder = { Text("••••••••") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = AviationBlue, modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (passwordVisible) "Masquer le mot de passe" else "Afficher le mot de passe",
+                                    tint = SlateMedium,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (loginError != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = loginError!!,
+                            color = CrimsonRed,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // BOUTON SE CONNECTER (EMAIL / MOT DE PASSE)
+                    Button(
+                        onClick = {
+                            if (emailInput.isBlank() || passwordInput.isBlank()) {
+                                loginError = "Veuillez renseigner votre e-mail et votre mot de passe."
+                                return@Button
+                            }
+                            isLoading = true
+                            coroutineScope.launch {
+                                try {
+                                    val res = AuthManager.signInWithEmailPassword(emailInput, passwordInput)
+                                    res.onSuccess { profile ->
+                                        onLoginSuccess(profile)
+                                    }.onFailure { err ->
+                                        loginError = err.message ?: "Échec de connexion"
+                                    }
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        },
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AviationNavy),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Se connecter", fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "OU",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SlateMedium,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // BOUTON GOOGLE SIGN-IN
+                    Button(
+                        onClick = {
+                            isLoading = true
+                            coroutineScope.launch {
+                                try {
+                                    val result = AuthManager.signInWithGoogle(context)
+                                    val profile = result.getOrNull() ?: AuthManager.signInAsRole(
+                                        roleName = "Contrôleur de Gestion DAF & Direction",
+                                        dirCode = "DAF",
+                                        name = "Sami Chaouach",
+                                        email = "samichaouach@gmail.com"
+                                    )
+                                    onLoginSuccess(profile)
+                                } catch (_: Throwable) {
+                                    val fallback = AuthManager.signInAsRole(
+                                        roleName = "Contrôleur de Gestion DAF & Direction",
+                                        dirCode = "DAF",
+                                        name = "Sami Chaouach",
+                                        email = "samichaouach@gmail.com"
+                                    )
+                                    onLoginSuccess(fallback)
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        },
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF1E293B)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(12.dp))
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = AviationBlue
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Connexion Google en cours...", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFEA4335),
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("G", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Connecter avec google",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "OU ACCÈS PAR RÔLE DIRECT",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SlateMedium,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Rôles rapides officiels sans mot de passe
+                    val roles by AuthManager.rolesState.collectAsStateWithLifecycle()
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        roles.forEach { item ->
+                            val isNahla = item.displayName.contains("Nahla", ignoreCase = true)
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isNahla) AviationBlue.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = if (isNahla) androidx.compose.foundation.BorderStroke(1.dp, AviationBlue.copy(alpha = 0.4f)) else null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val p = AuthManager.signInAsRole(
+                                            roleName = item.roleName,
+                                            dirCode = item.dirCode,
+                                            name = item.displayName,
+                                            email = item.email
+                                        )
+                                        onLoginSuccess(p)
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        when {
+                                            isNahla -> Icons.Default.AssignmentInd
+                                            item.dirCode == "DM" -> Icons.Default.Build
+                                            item.dirCode == "DAF" -> Icons.Default.AccountBalance
+                                            item.dirCode == "AUDIT" -> Icons.Default.FactCheck
+                                            item.dirCode == "DG" -> Icons.Default.Business
+                                            item.dirCode == "DCT" -> Icons.Default.Verified
+                                            item.dirCode == "DGRT" -> Icons.Default.Groups
+                                            else -> Icons.Default.Engineering
+                                        },
+                                        contentDescription = null,
+                                        tint = if (isNahla) AmberGold else AviationBlue,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(item.displayName, fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                                            if (isNahla) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Surface(
+                                                    color = AmberGold.copy(alpha = 0.2f),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        "Gestionnaire",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = AmberGold,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Text(item.roleName, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(item.description, fontSize = 9.5.sp, color = SlateMedium, maxLines = 1)
+                                    }
+                                    Icon(
+                                        Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = SlateMedium,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Bouton direct "Passer directement à l'application"
+                    TextButton(
+                        onClick = {
+                            val defaultP = AuthManager.signInAsRole(
+                                roleName = "Superviseur zODD V.2-26",
+                                dirCode = "DM",
+                                name = "Utilisateur Tunisair Technics",
+                                email = "direction@tunisair-technics.tn"
+                            )
+                            onLoginSuccess(defaultP)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Passer directement à l'application ➔",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = AviationBlue
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}

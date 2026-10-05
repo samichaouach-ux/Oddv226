@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">zODD V.2-26</string>
+    <string name="app_tagline">Gestion des Ordres de Déplacement &amp; Frais de Mission</string>
+    <string name="tab_lots">Lots &amp; ODD</string>
+    <string name="tab_validation">Circuit Validation</string>
+    <string name="tab_dashboard">Tableau de Bord</string>
+    <string name="tab_referentiel">Référentiels</string>
+    <string name="btn_lock_lot">Figer Lot</string>
+    <string name="btn_unlock_lot">Lot Fige</string>
+</resources>

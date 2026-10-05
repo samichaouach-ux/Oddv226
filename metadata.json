@@ -1,0 +1,6 @@
+{
+  "name": "zODD V.2-26",
+  "description": "Gestion logistique et comptable des Ordres de Déplacement (ODD), frais de mission techniciens, validation hiérarchique et tableaux de bord analytiques.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
