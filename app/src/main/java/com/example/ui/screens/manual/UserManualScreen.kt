@@ -1088,24 +1088,23 @@ private fun getManualChapters(): List<ManualChapter> {
                     tips = listOf("Les préférences visuelles sont mémorisées sur votre terminal.")
                 ),
                 ManualSection(
-                    sectionTitle = "8.4 Bouton « Installer l'App 📲 » sur Téléphone, Ordinateur (PC/Mac) & iPad/iPhone",
-                    content = "Un bouton d'action dédié 'Installer 📲' est directement accessible dans la barre supérieure de l'application ainsi que dans l'onglet 'Référentiels > Installation & App'. Il guide l'utilisateur pour installer ou utiliser zODD sur 3 plateformes distinctes :\n\n" +
-                            "• 1. TÉLÉPHONE OU TABLETTE ANDROID (FICHIER APK NATIF) :\n" +
-                            "   - Téléchargement du binaire natif `app-debug.apk` (33 Mo).\n" +
-                            "   - Fonctionnement 100% hors-ligne en escale, piste ou hangar aéronautique sans connexion internet obligatoire.\n" +
-                            "   - Procédure : Récupérez l'APK via le menu Export d'AI Studio, transférez-le sur votre smartphone Android et appuyez sur 'Installer'.\n\n" +
-                            "• 2. ORDINATEUR (PC WINDOWS & MAC) :\n" +
-                            "   - Accès Direct : Ouvrez Google AI Studio dans Google Chrome ou Microsoft Edge pour utiliser zODD en plein écran avec clavier et souris.\n" +
-                            "   - Exécution Locale : Téléchargez l'APK et lancez-le dans un émulateur Android (BlueStacks, Windows 11 Subsystem for Android WSA, ou Android Studio).\n\n" +
-                            "• 3. iPAD & iPHONE (APPLE iOS) :\n" +
-                            "   - Utilisation tactile immédiate sur iPad : Ouvrez Google AI Studio dans le navigateur Safari de votre iPad pour une expérience plein écran tactile complète.\n" +
-                            "   - Raccourci écran d'accueil : Dans Safari, appuyez sur Partager > 'Sur l'écran d'accueil' pour créer une icône de lancement direct.\n" +
-                            "   - Binaire d'entreprise IPA : Pour générer un package `.ipa` signé, téléchargez les sources du projet (Download ZIP) et compilez-les dans Xcode sous macOS.",
-                    frontEndAction = "Bouton 'Installer 📲' dans la barre supérieure ouvrant la boîte de dialogue modale avec sélecteur 3 voies (Android, PC/Mac, iPad/iOS) et guides pas-à-pas.",
-                    backEndProcess = "Composant `InstallAppModalDialog` avec gestion du presse-papiers Android (`ClipboardManager`) et protection contre les erreurs d'URL externe.",
+                    sectionTitle = "8.4 Guide d'Installation Multisupport : Android, Ordinateur (PC Windows/Mac) & Apple iOS (iPad/iPhone)",
+                    content = "L'application zODD V.2-26 est conçue pour s'adapter à l'ensemble du parc informatique et nomade de Tunisair Technics grâce à ses guides intégrés accessibles dans l'onglet 'Référentiels > Installation & App' :\n\n" +
+                            "• 1. TÉLÉPHONE OU TABLETTE ANDROID (PACKAGE APK NATIF) :\n" +
+                            "   - Binaire autonome `app-debug.apk` (33 Mo) précompilé avec base SQLite embarquée.\n" +
+                            "   - Fonctionnement 100% hors-ligne en hangar aéronautique, piste ou escale isolée.\n" +
+                            "   - Installation : Transférez le fichier APK sur le smartphone (USB, Drive ou e-mail), autorisez les sources inconnues et appuyez sur 'Installer'.\n\n" +
+                            "• 2. ORDINATEUR (PC WINDOWS 10/11, MAC & LINUX) :\n" +
+                            "   - Option A — Application de Bureau PWA : Dans Google Chrome ou Microsoft Edge, cliquez sur 'Installer l'application zODD' dans la barre d'adresses. L'application s'installe sur le Bureau Windows/Mac et s'ouvre dans une fenêtre dédiée sans barre d'outils de navigateur.\n" +
+                            "   - Option B — Émulateur Android Autonome : Glissez le fichier `app-debug.apk` dans le sous-système Android de Windows 11 (WSA) ou dans un émulateur tel que BlueStacks 5 ou Android Studio pour une exécution locale hors-ligne sur grand écran.\n\n" +
+                            "• 3. TABLETTE iPAD & iPHONE (APPLE iOS) :\n" +
+                            "   - Option A — Application Écran d'Accueil (Safari PWA) : Ouvrez zODD dans Safari sur votre iPad ou iPhone, appuyez sur l'icône de partage iOS (carré avec flèche vers le haut) et sélectionnez 'Sur l'écran d'accueil'. L'application zODD s'ouvre alors en plein écran tactile natif sans aucune interface de navigateur.\n" +
+                            "   - Option B — Déploiement Binaire d'Entreprise (.IPA) : Téléchargez les sources (Download ZIP) et signez le projet dans Xcode sous macOS avec votre compte Apple Developer Enterprise pour un déploiement MDM (Intune, MobileIron).",
+                    frontEndAction = "Onglet 'Référentiels > Installation & App' et boîte de dialogue modale `InstallAppModalDialog` avec sélecteur 3 voies (Android, PC/Mac, iPad/iOS) et boutons de copie dans le presse-papiers.",
+                    backEndProcess = "Composant `InstallAppModalDialog` avec gestion du presse-papiers Android (`ClipboardManager`), gestion multiplateforme PWA et support des bannières d'installation hors-ligne.",
                     tips = listOf(
-                        "Sur ordinateur, l'affichage en grand écran est particulièrement confortable pour les vérifications comptables d'audit.",
-                        "Sur Android, le fichier APK garantit une rapidité d'exécution locale hors-ligne incomparable."
+                        "Sur PC / Mac, l'utilisation sur grand écran avec souris et pavé numérique physique accélère le contrôle comptable et l'audit des lots.",
+                        "Sur iPad, l'accès 'Sur l'écran d'accueil' permet une utilisation tactile ergonomique en réunion de direction ou lors des visites de maintenance."
                     )
                 )
             )

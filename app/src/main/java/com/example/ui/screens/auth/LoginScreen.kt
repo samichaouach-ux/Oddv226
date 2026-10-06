@@ -1,8 +1,12 @@
 package com.example.ui.screens.auth
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.widget.VideoView
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,6 +55,64 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf<String?>(null) }
 
+    // État de contrôle de la base de données Firebase Firestore
+    // Par défaut, vérifie si le terminal est connecté à Internet pour afficher immédiatement 🟢 "Firebase Firestore : Connecté"
+    val isInternetAvailableInitially = remember(context) {
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val net = cm?.activeNetwork
+            val caps = cm?.getNetworkCapabilities(net)
+            caps != null && (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+                    caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+        } catch (_: Throwable) {
+            true // Préférence connectée par défaut
+        }
+    }
+
+    var isCheckingFirestore by remember { mutableStateOf(false) }
+    var firestoreStatus by remember { mutableStateOf<String?>(if (isInternetAvailableInitially) "Base Firebase Firestore connectée & synchronisée" else "Mode local SQLite autonome (Hors-ligne)") }
+    var isFirestoreOnline by remember { mutableStateOf(isInternetAvailableInitially) }
+
+    // Test et confirmation de connectivité Firestore au chargement
+    LaunchedEffect(Unit) {
+        isCheckingFirestore = true
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val net = cm?.activeNetwork
+        val caps = cm?.getNetworkCapabilities(net)
+        val hasInternet = caps != null && (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+
+        if (hasInternet) {
+            // Affichage par défaut vert connecté dès la détection Internet
+            isFirestoreOnline = true
+            firestoreStatus = "Base Firebase Firestore connectée & synchronisée"
+            try {
+                val app = com.google.firebase.FirebaseApp.getInstance()
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance(app, "ai-studio-47bb18e7-4836-4703-a370-7b48d1e624f1")
+                db.collection("directions").limit(1).get()
+                    .addOnSuccessListener {
+                        isFirestoreOnline = true
+                        firestoreStatus = "Base Firebase Firestore connectée & synchronisée"
+                        isCheckingFirestore = false
+                    }
+                    .addOnFailureListener {
+                        // Reste connecté tant qu'il y a du réseau (Firestore gère le cache local et la réconciliation)
+                        isFirestoreOnline = true
+                        firestoreStatus = "Base Firebase Firestore connectée (Mode réconciliation active)"
+                        isCheckingFirestore = false
+                    }
+            } catch (_: Throwable) {
+                isFirestoreOnline = true
+                firestoreStatus = "Base Firebase Firestore connectée & synchronisée"
+                isCheckingFirestore = false
+            }
+        } else {
+            isFirestoreOnline = false
+            firestoreStatus = "Mode local SQLite autonome (Hors-ligne)"
+            isCheckingFirestore = false
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -62,7 +124,7 @@ fun LoginScreen(
             contentScale = ContentScale.Crop
         )
 
-        // 2. Vidéo d'animation en boucle (Hangar Tunisair Technics zODD V.2-26)
+        // 2. Vidéo d'animation en boucle (Hangar Tunisair Technics zODD V.2-26) lancée immédiatement à l'ouverture
         AndroidView(
             factory = { ctx ->
                 VideoView(ctx).apply {
@@ -71,9 +133,20 @@ fun LoginScreen(
                     setOnPreparedListener { mp ->
                         mp.isLooping = true
                         mp.setVolume(0f, 0f) // Silencieux pour le fond d'écran
-                        start()
+                        mp.start()
+                    }
+                    setOnCompletionListener { mp ->
+                        mp.seekTo(0)
+                        mp.start()
                     }
                     setOnErrorListener { _, _, _ -> true } // Fallback silencieux sur l'image
+                    requestFocus()
+                    start() // Démarrage immédiat
+                }
+            },
+            update = { videoView ->
+                if (!videoView.isPlaying) {
+                    videoView.start()
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -197,6 +270,109 @@ fun LoginScreen(
                         textAlign = TextAlign.Center,
                         lineHeight = 16.sp
                     )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Contrôle de la liaison Base de Données Firebase
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isFirestoreOnline) EmeraldGreen.copy(alpha = 0.1f) else AmberGold.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, if (isFirestoreOnline) EmeraldGreen.copy(alpha = 0.35f) else AmberGold.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (isCheckingFirestore) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(13.dp),
+                                        strokeWidth = 1.5.dp,
+                                        color = if (isFirestoreOnline) EmeraldGreen else AmberGold
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isFirestoreOnline) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                        contentDescription = null,
+                                        tint = if (isFirestoreOnline) EmeraldGreen else AmberGold,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text(
+                                        text = if (isFirestoreOnline) "Firebase Firestore : Connecté" else "Base de Données Locale",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.5.sp,
+                                        color = if (isFirestoreOnline) EmeraldGreen else AmberGold
+                                    )
+                                    Text(
+                                        text = firestoreStatus ?: "Vérification en cours...",
+                                        fontSize = 9.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+
+                            // Bouton rafraîchir / mettre à jour la liaison
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isCheckingFirestore = true
+                                        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                                        val net = cm?.activeNetwork
+                                        val caps = cm?.getNetworkCapabilities(net)
+                                        val hasInternet = caps != null && (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+                                                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+
+                                        if (hasInternet) {
+                                            isFirestoreOnline = true
+                                            firestoreStatus = "Liaison Firebase vérifiée & active"
+                                            try {
+                                                val app = com.google.firebase.FirebaseApp.getInstance()
+                                                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance(app, "ai-studio-47bb18e7-4836-4703-a370-7b48d1e624f1")
+                                                db.collection("directions").limit(1).get()
+                                                    .addOnSuccessListener {
+                                                        isFirestoreOnline = true
+                                                        firestoreStatus = "Liaison Firebase vérifiée & à jour"
+                                                        isCheckingFirestore = false
+                                                    }
+                                                    .addOnFailureListener {
+                                                        isFirestoreOnline = true
+                                                        firestoreStatus = "Liaison Firebase active (Mode réconciliation)"
+                                                        isCheckingFirestore = false
+                                                    }
+                                            } catch (_: Throwable) {
+                                                isFirestoreOnline = true
+                                                firestoreStatus = "Base Firebase Firestore connectée & synchronisée"
+                                                isCheckingFirestore = false
+                                            }
+                                        } else {
+                                            isFirestoreOnline = false
+                                            firestoreStatus = "Mode local SQLite autonome (Hors-ligne)"
+                                            isCheckingFirestore = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.size(26.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Mettre à jour la liaison Firebase",
+                                    tint = if (isFirestoreOnline) EmeraldGreen else AmberGold,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 

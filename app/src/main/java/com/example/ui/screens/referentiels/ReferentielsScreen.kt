@@ -2111,12 +2111,12 @@ private fun InstallationAndSettingsTab(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "2. Télécharger & Utiliser sur Ordinateur (PC / Mac)",
+                                text = "2. Installer & Utiliser sur Ordinateur (PC Windows / Mac / Linux)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
                             Text(
-                                text = "Plein écran sur grand écran, souris et clavier physique",
+                                text = "Application de Bureau (PWA), Émulateur Android WSA / BlueStacks ou Navigateur",
                                 fontSize = 11.sp,
                                 color = SlateMedium
                             )
@@ -2125,30 +2125,44 @@ private fun InstallationAndSettingsTab(
 
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• En ligne : Utilisez Google AI Studio directement dans votre navigateur Chrome ou Edge sur PC / Mac.\n" +
-                               "• Hors-ligne sur PC : Téléchargez le fichier 'app-debug.apk' via le menu Export d'AI Studio, puis ouvrez-le dans l'émulateur Android de votre choix (BlueStacks, Windows 11 Subsystem for Android, ou Android Studio).",
+                        text = "• Mode Bureau PWA (Recommandé) : Dans Google Chrome ou Microsoft Edge, cliquez sur 'Installer l'application' dans la barre d'adresses. L'application dispose alors de son icône sur le Bureau Windows/Mac et se lance dans une fenêtre dédiée.\n" +
+                               "• Mode Hors-Ligne (Émulateur Android) : Téléchargez 'app-debug.apk' et glissez-le dans BlueStacks 5, le sous-système Android de Windows 11 (WSA) ou Android Studio pour une utilisation 100% autonome hors-ligne.",
                         fontSize = 12.sp,
                         lineHeight = 18.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        onClick = {
-                            val instructions = "Guide zODD sur Ordinateur (PC/Mac) :\n" +
-                                    "1. Téléchargez le fichier APK depuis le menu Export d'AI Studio.\n" +
-                                    "2. Lancez le fichier dans votre émulateur Android (BlueStacks, WSA Windows 11)."
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Instructions PC zODD", instructions))
-                            Toast.makeText(context, "Instructions PC copiées dans le presse-papiers !", Toast.LENGTH_SHORT).show()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Copier le Guide d'Installation Ordinateur", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Black)
+                        Button(
+                            onClick = { showModalInstallDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Computer, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Guide PC / Mac Détaillé", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.Black)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val instructions = "Guide zODD sur Ordinateur (PC/Mac) :\n" +
+                                        "1. Application Bureau : Dans Chrome/Edge, cliquez sur 'Installer l'application' pour créer le raccourci Bureau.\n" +
+                                        "2. Fichier APK Hors-ligne : Glissez app-debug.apk dans BlueStacks ou Windows Subsystem for Android."
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Instructions PC zODD", instructions))
+                                Toast.makeText(context, "Instructions PC copiées dans le presse-papiers !", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copier", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -2175,12 +2189,12 @@ private fun InstallationAndSettingsTab(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "3. Utiliser & Installer sur iPad & iPhone (Apple iOS)",
+                                text = "3. Installer & Utiliser sur iPad & iPhone (Apple iOS)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
                             Text(
-                                text = "Écran tactile iPad et déploiement d'entreprise IPA",
+                                text = "Icône Écran d'Accueil Safari (Plein Écran) & Package IPA Xcode",
                                 fontSize = 11.sp,
                                 color = SlateMedium
                             )
@@ -2189,24 +2203,46 @@ private fun InstallationAndSettingsTab(
 
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• Sur iPad : Ouvrez Google AI Studio dans Safari sur votre iPad. Vous disposez de l'application en grand écran tactile. Touchez Partager > 'Sur l'écran d'accueil' pour un accès direct en 1 touche.\n\n" +
-                               "• Concernant le fichier IPA (.ipa) pour iOS :\n" +
-                               "  Les packages .ipa d'Apple requièrent obligatoirement un environnement macOS avec Xcode et un certificat Apple Developer. Vous pouvez exporter le projet complet en ZIP depuis le menu AI Studio et le compiler dans Xcode pour générer le binaire .ipa signé de votre organisation.",
+                        text = "• Installation Immédiate sur iPad / iPhone : Ouvrez zODD dans Safari. Touchez le bouton 'Partager' (flèche vers le haut) et sélectionnez 'Sur l'écran d'accueil'. L'application zODD s'installe avec son icône sur votre écran et s'exécute en plein écran tactile natif sans barre de navigateur Safari.\n\n" +
+                               "• Déploiement Binaire iOS (.IPA) : Pour une installation via un outil de gestion d'entreprise (MDM), téléchargez les sources complètes (Download ZIP) et signez le projet dans Xcode avec votre certificat d'entreprise Apple.",
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        onClick = { showModalInstallDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = AviationBlue),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.PhoneIphone, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Afficher le Guide Complet iPad / iPhone", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Button(
+                            onClick = { showModalInstallDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = AviationBlue),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.PhoneIphone, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Guide iPad / iOS Détaillé", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val instructions = "Guide d'installation zODD iPad & iPhone (iOS) :\n" +
+                                        "1. Ouvrez zODD dans Safari sur votre iPad ou iPhone.\n" +
+                                        "2. Touchez 'Partager' (icône carré avec flèche vers le haut).\n" +
+                                        "3. Choisissez 'Sur l'écran d'accueil' puis 'Ajouter'.\n" +
+                                        "4. Lancez zODD directement depuis l'écran d'accueil en plein écran natif."
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Instructions iPad zODD", instructions))
+                                Toast.makeText(context, "Instructions iPad / iOS copiées !", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copier", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
