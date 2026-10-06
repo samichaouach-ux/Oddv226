@@ -88,6 +88,9 @@ interface ZoddDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDocument(doc: DocumentRattachementEntity)
 
+    @Update
+    suspend fun updateDocument(doc: DocumentRattachementEntity)
+
     @Delete
     suspend fun deleteDocument(doc: DocumentRattachementEntity)
 

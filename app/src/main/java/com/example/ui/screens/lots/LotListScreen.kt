@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -379,23 +381,27 @@ fun LotListScreen(
 
                 if (!isDgOrNahla) {
                     item {
+                        val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+                        val readOnlyTextColor = if (isDark) Color.White else Color.Black
+                        val readOnlyBgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+                        val readOnlyBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                            color = readOnlyBgColor,
+                            border = BorderStroke(1.dp, readOnlyBorderColor),
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = AviationNavy, modifier = Modifier.size(15.dp))
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = readOnlyTextColor, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "🔒 Mode Lecture Seule • Direction $userDir (Détails ODD, Frais et Justificatifs consultables)",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = AviationNavy
+                                    color = readOnlyTextColor
                                 )
                             }
                         }
@@ -542,13 +548,18 @@ private fun LotCardItem(
     userDir: String = "",
     onClick: () -> Unit
 ) {
-    var isExpanded by remember { mutableStateOf(lot.figerLot) }
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val readOnlyTextColor = if (isDark) Color.White else Color.Black
+    val readOnlyBgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+    val readOnlyBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clickable(onClick = onClick),
+            .clickable(onClick = { isExpanded = !isExpanded }),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -653,94 +664,71 @@ private fun LotCardItem(
                 )
             }
 
-            // BOUTON DIRECT DE CONSULTATION DU LOT (ACCESSIBLE TOUT LE TEMPS)
+            // BOUTON DIRECT DE CONSULTATION DU LOT (ACCORDÉON SUR PLACE)
             Spacer(modifier = Modifier.height(12.dp))
             Button(
-                onClick = onClick,
+                onClick = { isExpanded = !isExpanded },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isExpanded) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                )
             ) {
-                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.Visibility,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (lot.figerLot) "Consulter les Détails (ODD, Frais, Justificatifs) ➔" else "Ouvrir & Gérer le Dossier ➔",
+                    text = if (isExpanded) "Masquer les Détails du Dossier ▲"
+                    else if (lot.figerLot) "Consulter les Détails (ODD, Frais, Justifs) ▼"
+                    else "Ouvrir & Consulter le Dossier ▼",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            // Volet d'aperçu rapide optionnel sur place pour les lots figés
-            if (lot.figerLot) {
+            if (isExpanded) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { isExpanded = !isExpanded },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = AviationNavy,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (isExpanded) "Masquer l'aperçu rapide ▲" else "Aperçu rapide sur place (${odds.size} ODD, ${fraisList.size} Frais) ▼",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
-                            color = AviationNavy
-                        )
-                    }
 
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                // Notice mode lecture seule ou gestion
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = readOnlyBgColor,
+                    border = BorderStroke(1.dp, readOnlyBorderColor),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            imageVector = if (lot.figerLot) Icons.Default.Lock else Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = readOnlyTextColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Mode Lecture Seule",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            text = if (lot.figerLot) {
+                                if (userDir.isNotBlank()) "🔒 Mode Lecture Seule • Direction $userDir (Détails complets en consultation)"
+                                else "🔒 Lot figé : Consultation intégrale en lecture seule."
+                            } else {
+                                "✏️ Dossier en cours de gestion • Direction ${lot.directionActuelle}"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = readOnlyTextColor
                         )
                     }
                 }
 
-                if (isExpanded) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    // Notice mode lecture seule
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Lock, contentDescription = null, tint = AviationNavy, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (userDir.isNotBlank()) "🔒 Mode Lecture Seule • Direction $userDir (Détails complets en consultation stricte)"
-                                else "🔒 Lot figé : Consultation intégrale en lecture seule.",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = AviationNavy
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // DÉTAILS DES ODD DU LOT FIGÉ
-                    Text(
-                        text = "📋 Ordres de Déplacement rattachés (${odds.size}) :",
+                // DÉTAILS DES ODD DU LOT
+                Text(
+                    text = "📋 Ordres de Déplacement rattachés (${odds.size}) :",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary
@@ -860,8 +848,375 @@ private fun LotCardItem(
                             }
                         }
                     }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = onClick,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(Icons.Default.Fullscreen, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (lot.figerLot) "Dossier Complet en Plein Écran ➔" else "Gérer le Dossier en Plein Écran ➔",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    TextButton(onClick = { isExpanded = false }) {
+                        Text("Replier ▲", fontSize = 11.sp)
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+fun LotReadOnlyDetailsDialog(
+    lot: LotEntity,
+    odds: List<OddEntity>,
+    fraisList: List<FraisEntity>,
+    documents: List<DocumentRattachementEntity>,
+    dateFormat: SimpleDateFormat,
+    userDir: String,
+    onDismiss: () -> Unit,
+    onOpenFullDetail: () -> Unit
+) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val readOnlyTextColor = if (isDark) Color.White else Color.Black
+    val readOnlyBgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+    val readOnlyBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Lot ${lot.lotN}",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    StatusBadge(status = lot.statutValidation, isFige = lot.figerLot)
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = lot.libelle,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp)
+            ) {
+                // Bandeau Mode Lecture Seule
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = readOnlyBgColor,
+                    border = BorderStroke(1.dp, readOnlyBorderColor),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = readOnlyTextColor, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (userDir.isNotBlank()) "🔒 Mode Lecture Seule • Direction $userDir"
+                            else "🔒 Lot figé : Consultation intégrale en lecture seule",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = readOnlyTextColor
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Métriques financières du lot
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Total : %.3f TND".format(lot.totalCoutOdd),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Dir : ${lot.directionActuelle}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Onglets de navigation : ODD, Frais, Justificatifs
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = {
+                            Text(
+                                "ODD (${odds.size})",
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = {
+                            Text(
+                                "Frais (${fraisList.size})",
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = {
+                            Text(
+                                "Justifs (${documents.size})",
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Contenu de l'onglet actif
+                Box(modifier = Modifier.weight(1f, fill = false)) {
+                    when (selectedTab) {
+                        0 -> {
+                            if (odds.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                    Text("Aucun ODD rattaché à ce lot.", fontSize = 12.sp, color = SlateLight)
+                                }
+                            } else {
+                                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(odds, key = { it.oddN }) { odd ->
+                                        val oddFrais = fraisList.filter { it.oddN == odd.oddN }
+                                        val oddDocs = documents.filter { it.oddN == odd.oddN }
+                                        val netOdd = (odd.totalOdd - odd.avanceSurMission).coerceAtLeast(0.0)
+
+                                        Card(
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.padding(10.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = MaterialTheme.colorScheme.primaryContainer
+                                                    ) {
+                                                        Text(
+                                                            text = odd.oddN,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "%.3f TND".format(netOdd),
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = "Tech : ${odd.matricule} • Échelle ${odd.echelle}",
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 11.sp
+                                                )
+                                                Text(
+                                                    text = "Trajet : ${odd.siteProvenance} ➔ ${odd.siteIntervention}",
+                                                    fontSize = 11.sp
+                                                )
+                                                Text(
+                                                    text = "Mission : ${odd.mission}",
+                                                    fontSize = 10.5.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = "Période : Du ${dateFormat.format(Date(odd.dateDebut))} au ${dateFormat.format(Date(odd.dateFin))}",
+                                                    fontSize = 10.sp,
+                                                    color = SlateMedium
+                                                )
+                                                if (oddFrais.isNotEmpty() || oddDocs.isNotEmpty()) {
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        if (oddFrais.isNotEmpty()) {
+                                                            Text("💰 ${oddFrais.size} frais", fontSize = 10.sp, color = AmberGold, fontWeight = FontWeight.Bold)
+                                                        }
+                                                        if (oddDocs.isNotEmpty()) {
+                                                            Text("📎 ${oddDocs.size} docs", fontSize = 10.sp, color = EmeraldGreen, fontWeight = FontWeight.Bold)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        1 -> {
+                            if (fraisList.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                    Text("Aucun frais enregistré pour ce lot.", fontSize = 12.sp, color = SlateLight)
+                                }
+                            } else {
+                                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(fraisList, key = { it.idFrais }) { f ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(4.dp),
+                                                            color = when (f.categorie) {
+                                                                "Hébergement" -> MaterialTheme.colorScheme.primaryContainer
+                                                                "Transport" -> AmberLight
+                                                                else -> Color(0xFFF3E8FF)
+                                                            }
+                                                        ) {
+                                                            Text(
+                                                                text = f.categorie,
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = when (f.categorie) {
+                                                                    "Hébergement" -> MaterialTheme.colorScheme.primary
+                                                                    "Transport" -> AmberGold
+                                                                    else -> Color(0xFF7E22CE)
+                                                                },
+                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Text("ODD ${f.oddN}", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                    Text(
+                                                        text = "${f.sousCategorie} : ${f.quantite} ${f.unite} × %.3f".format(f.pUnit),
+                                                        fontSize = 10.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                                Text(
+                                                    text = "%.3f TND %s".format(f.montant, if (f.estComptabilise) "✓" else "(non c.)"),
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else SlateLight
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        2 -> {
+                            if (documents.isEmpty()) {
+                                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                                    Text("Aucune pièce justificative rattachée.", fontSize = 12.sp, color = SlateLight)
+                                }
+                            } else {
+                                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(documents, key = { it.idDoc }) { d ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Default.AttachFile, contentDescription = null, tint = EmeraldGreen, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(d.typeDocument, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = EmeraldGreen)
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Text("• ODD ${d.oddN}", fontSize = 10.sp, color = SlateMedium)
+                                                    }
+                                                    Text(d.objet, fontSize = 10.5.sp)
+                                                    Text(
+                                                        "Reçu le : ${dateFormat.format(Date(d.dateEnvoie))}",
+                                                        fontSize = 9.5.sp,
+                                                        color = SlateMedium
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onDismiss()
+                    onOpenFullDetail()
+                }
+            ) {
+                Text("Ouvrir Dossier Plein Écran ➔", fontSize = 11.5.sp)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Fermer")
+            }
+        }
+    )
 }

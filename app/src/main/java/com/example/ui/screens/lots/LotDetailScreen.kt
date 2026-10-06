@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,8 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.*
@@ -60,6 +63,10 @@ fun LotDetailScreen(
     baremes: List<BaremeTarifEntity> = emptyList(),
     coutsMission: List<com.example.data.local.CoutMissionEntity> = emptyList(),
     onToggleFraisComptabilise: (FraisEntity) -> Unit = {},
+    onEditOdd: (OddEntity) -> Unit = {},
+    onEditFrais: (FraisEntity) -> Unit = {},
+    onEditDoc: (DocumentRattachementEntity) -> Unit = {},
+    onDeleteDoc: (DocumentRattachementEntity) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -71,8 +78,11 @@ fun LotDetailScreen(
     val isReadOnly = lot.figerLot || !isDgOrNahla
     val userDir = activeUser?.dirCode ?: ""
 
-    val tabs = if (lot.figerLot) listOf("LES ODD", "FRAIS", "JUSTIFICATIFS", "VALIDATION") else listOf("LES ODD", "FRAIS", "JUSTIFICATIFS")
-    val effectiveActiveTab = if (!lot.figerLot && activeTab == "VALIDATION") "LES ODD" else if (activeTab in tabs) activeTab else "LES ODD"
+    val tabs = if (lot.figerLot) listOf("LES ODD", "FRAIS", "JUSTIFS", "VALIDATION") else listOf("LES ODD", "FRAIS", "JUSTIFS")
+    val effectiveActiveTab = if (!lot.figerLot && activeTab == "VALIDATION") "LES ODD"
+        else if (activeTab == "JUSTIFICATIFS" || activeTab == "JUSTIFS") "JUSTIFS"
+        else if (activeTab in tabs) activeTab
+        else "LES ODD"
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.FRANCE)
 
     var showFreezeConfirmDialog by remember { mutableStateOf(false) }
@@ -259,7 +269,7 @@ fun LotDetailScreen(
                 }
             }
 
-            // Tab Row (BASCULEMENT_VUES: "LES ODD", "FRAIS", "JUSTIFICATIFS", "VALIDATION")
+            // Tab Row (BASCULEMENT_VUES: "LES ODD", "FRAIS", "JUSTIFS", "VALIDATION")
             TabRow(
                 selectedTabIndex = tabs.indexOf(effectiveActiveTab).coerceAtLeast(0),
                 containerColor = MaterialTheme.colorScheme.surface
@@ -273,7 +283,9 @@ fun LotDetailScreen(
                             Text(
                                 text = tabName,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 12.sp
+                                fontSize = 11.5.sp,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     )
@@ -291,9 +303,13 @@ fun LotDetailScreen(
                         dateFormat = dateFormat,
                         onAddOddClick = onAddOddClick,
                         onDeleteOdd = onDeleteOdd,
+                        onEditOdd = onEditOdd,
                         onAddFraisForOdd = onAddFraisForOdd,
                         onAttachDocForOdd = onAttachDocForOdd,
                         onDeleteFrais = onDeleteFrais,
+                        onEditFrais = onEditFrais,
+                        onEditDoc = onEditDoc,
+                        onDeleteDoc = onDeleteDoc,
                         baremes = baremes,
                         coutsMission = coutsMission,
                         onToggleFraisComptabilise = onToggleFraisComptabilise,
@@ -308,17 +324,20 @@ fun LotDetailScreen(
                         odds = odds,
                         onAddFraisClick = onAddFraisClick,
                         onDeleteFrais = onDeleteFrais,
+                        onEditFrais = onEditFrais,
                         onToggleFraisComptabilise = onToggleFraisComptabilise,
                         isReadOnly = isReadOnly,
                         activeUserDir = userDir
                     )
                 }
-                "JUSTIFICATIFS" -> {
+                "JUSTIFS", "JUSTIFICATIFS" -> {
                     JustificatifsTabContent(
                         lot = lot,
                         documents = documents,
                         dateFormat = dateFormat,
                         onAttachDocClick = onAttachDocClick,
+                        onEditDoc = onEditDoc,
+                        onDeleteDoc = onDeleteDoc,
                         isReadOnly = isReadOnly,
                         activeUserDir = userDir
                     )
@@ -342,9 +361,13 @@ fun LotDetailScreen(
                         dateFormat = dateFormat,
                         onAddOddClick = onAddOddClick,
                         onDeleteOdd = onDeleteOdd,
+                        onEditOdd = onEditOdd,
                         onAddFraisForOdd = onAddFraisForOdd,
                         onAttachDocForOdd = onAttachDocForOdd,
                         onDeleteFrais = onDeleteFrais,
+                        onEditFrais = onEditFrais,
+                        onEditDoc = onEditDoc,
+                        onDeleteDoc = onDeleteDoc,
                         baremes = baremes,
                         coutsMission = coutsMission,
                         onToggleFraisComptabilise = onToggleFraisComptabilise,
@@ -419,9 +442,13 @@ private fun OddsTabContent(
     dateFormat: SimpleDateFormat,
     onAddOddClick: () -> Unit,
     onDeleteOdd: (OddEntity) -> Unit,
+    onEditOdd: (OddEntity) -> Unit = {},
     onAddFraisForOdd: (String) -> Unit,
     onAttachDocForOdd: (String) -> Unit,
     onDeleteFrais: (FraisEntity) -> Unit,
+    onEditFrais: (FraisEntity) -> Unit = {},
+    onEditDoc: (DocumentRattachementEntity) -> Unit = {},
+    onDeleteDoc: (DocumentRattachementEntity) -> Unit = {},
     baremes: List<BaremeTarifEntity> = emptyList(),
     coutsMission: List<com.example.data.local.CoutMissionEntity> = emptyList(),
     onToggleFraisComptabilise: (FraisEntity) -> Unit = {},
@@ -447,24 +474,28 @@ private fun OddsTabContent(
             }
         } else {
             item {
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+                val readOnlyTextColor = if (isDark) Color.White else Color.Black
+                val readOnlyBgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+                val readOnlyBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    color = readOnlyBgColor,
+                    border = BorderStroke(1.dp, readOnlyBorderColor),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = AviationNavy, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = readOnlyTextColor, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (activeUserDir.isNotBlank()) "🔒 Mode Lecture Seule • Direction $activeUserDir (Détails des ODD, frais et justificatifs en consultation)"
                             else "🔒 Lot figé : Les ODD sont en lecture seule (données non modifiables).",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = AviationNavy
+                            color = readOnlyTextColor
                         )
                     }
                 }
@@ -888,7 +919,18 @@ private fun OddsTabContent(
                                                         }
                                                     }
                                                     if (!isReadOnly) {
-                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        IconButton(
+                                                            onClick = { onEditFrais(f) },
+                                                            modifier = Modifier.size(24.dp)
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Default.Edit,
+                                                                contentDescription = "Modifier",
+                                                                tint = MaterialTheme.colorScheme.primary,
+                                                                modifier = Modifier.size(15.dp)
+                                                            )
+                                                        }
                                                         IconButton(
                                                             onClick = { onDeleteFrais(f) },
                                                             modifier = Modifier.size(24.dp)
@@ -979,6 +1021,31 @@ private fun OddsTabContent(
                                                     tint = EmeraldGreen,
                                                     modifier = Modifier.size(16.dp)
                                                 )
+                                                if (!isReadOnly) {
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    IconButton(
+                                                        onClick = { onEditDoc(doc) },
+                                                        modifier = Modifier.size(24.dp)
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.Edit,
+                                                            contentDescription = "Modifier justificatif",
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(15.dp)
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = { onDeleteDoc(doc) },
+                                                        modifier = Modifier.size(24.dp)
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.DeleteOutline,
+                                                            contentDescription = "Supprimer justificatif",
+                                                            tint = CrimsonRed,
+                                                            modifier = Modifier.size(15.dp)
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -986,7 +1053,7 @@ private fun OddsTabContent(
                             }
                         }
 
-                        // Bottom Actions: Supprimer ODD si non figé
+                        // Bottom Actions: Modifier et Supprimer ODD si non figé
                         if (!isReadOnly) {
                             Spacer(modifier = Modifier.height(6.dp))
                             Row(
@@ -1002,13 +1069,28 @@ private fun OddsTabContent(
                                     )
                                 }
 
-                                TextButton(
-                                    onClick = { onDeleteOdd(odd) },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = CrimsonRed)
-                                ) {
-                                    Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Supprimer ODD", fontSize = 11.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    FilledTonalButton(
+                                        onClick = { onEditOdd(odd) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Modifier ODD", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Spacer(modifier = Modifier.width(6.dp))
+
+                                    TextButton(
+                                        onClick = { onDeleteOdd(odd) },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = CrimsonRed)
+                                    ) {
+                                        Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Supprimer ODD", fontSize = 11.sp)
+                                    }
                                 }
                             }
                         }
@@ -1029,6 +1111,7 @@ private fun FraisTabContent(
     odds: List<OddEntity>,
     onAddFraisClick: () -> Unit,
     onDeleteFrais: (FraisEntity) -> Unit,
+    onEditFrais: (FraisEntity) -> Unit = {},
     onToggleFraisComptabilise: (FraisEntity) -> Unit = {},
     isReadOnly: Boolean = lot.figerLot,
     activeUserDir: String = ""
@@ -1052,24 +1135,28 @@ private fun FraisTabContent(
             }
         } else {
             item {
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+                val readOnlyTextColor = if (isDark) Color.White else Color.Black
+                val readOnlyBgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+                val readOnlyBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    color = readOnlyBgColor,
+                    border = BorderStroke(1.dp, readOnlyBorderColor),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = AviationNavy, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = readOnlyTextColor, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (activeUserDir.isNotBlank()) "🔒 Mode Lecture Seule • Direction $activeUserDir (Détails des frais en consultation stricte)"
                             else "🔒 Lot figé : Les frais sont en lecture seule (données non modifiables).",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = AviationNavy
+                            color = readOnlyTextColor
                         )
                     }
                 }
@@ -1165,8 +1252,13 @@ private fun FraisTabContent(
                             }
                             if (!isReadOnly) {
                                 Spacer(modifier = Modifier.height(2.dp))
-                                IconButton(onClick = { onDeleteFrais(f) }, modifier = Modifier.size(24.dp)) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = CrimsonRed, modifier = Modifier.size(15.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(onClick = { onEditFrais(f) }, modifier = Modifier.size(24.dp)) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
+                                    }
+                                    IconButton(onClick = { onDeleteFrais(f) }, modifier = Modifier.size(24.dp)) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = CrimsonRed, modifier = Modifier.size(15.dp))
+                                    }
                                 }
                             }
                         }
@@ -1186,6 +1278,8 @@ private fun JustificatifsTabContent(
     documents: List<DocumentRattachementEntity>,
     dateFormat: SimpleDateFormat,
     onAttachDocClick: () -> Unit,
+    onEditDoc: (DocumentRattachementEntity) -> Unit = {},
+    onDeleteDoc: (DocumentRattachementEntity) -> Unit = {},
     isReadOnly: Boolean = lot.figerLot,
     activeUserDir: String = ""
 ) {
@@ -1207,24 +1301,28 @@ private fun JustificatifsTabContent(
             }
         } else {
             item {
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+                val readOnlyTextColor = if (isDark) Color.White else Color.Black
+                val readOnlyBgColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
+                val readOnlyBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    color = readOnlyBgColor,
+                    border = BorderStroke(1.dp, readOnlyBorderColor),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = AviationNavy, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = readOnlyTextColor, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (activeUserDir.isNotBlank()) "🔒 Mode Lecture Seule • Direction $activeUserDir (Détails des justificatifs en consultation stricte)"
                             else "🔒 Lot figé : Les pièces justificatives sont en lecture seule (données non modifiables).",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = AviationNavy
+                            color = readOnlyTextColor
                         )
                     }
                 }
@@ -1287,6 +1385,32 @@ private fun JustificatifsTabContent(
                         }
 
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = EmeraldGreen, modifier = Modifier.size(20.dp))
+
+                        if (!isReadOnly) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(
+                                onClick = { onEditDoc(doc) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Modifier",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = { onDeleteDoc(doc) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.DeleteOutline,
+                                    contentDescription = "Supprimer",
+                                    tint = CrimsonRed,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

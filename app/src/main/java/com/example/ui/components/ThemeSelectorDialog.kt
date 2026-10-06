@@ -112,7 +112,123 @@ fun ThemeSelectorDialog(
 
                 HorizontalDivider()
 
-                // Section 2: Palette de Couleurs (3 choix exclusifs)
+                // Recommandations Repos des Yeux (2 propositions pour Mode Clair & 2 pour Mode Sombre)
+                Text(
+                    text = "💡 Propositions Repos des Yeux (2 par mode)",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                // Carte Propositions Mode Clair
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LightMode, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Mode Clair — 2 Choix Reposants :", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    onSelectDarkMode(DarkModeOption.LIGHT)
+                                    onSelectPalette(AppPalette.SABLE_CHAUD)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.2.dp,
+                                    if (currentDarkMode == DarkModeOption.LIGHT && currentPalette == AppPalette.SABLE_CHAUD) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("1. Lin & Sépia 🌾", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                    Text("Zéro éblouissement", fontSize = 8.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    onSelectDarkMode(DarkModeOption.LIGHT)
+                                    onSelectPalette(AppPalette.FORET_OLIVE)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.2.dp,
+                                    if (currentDarkMode == DarkModeOption.LIGHT && currentPalette == AppPalette.FORET_OLIVE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("2. Olive Douce 🌿", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                    Text("Apaisant végétal", fontSize = 8.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Carte Propositions Mode Sombre
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.DarkMode, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Mode Sombre — 2 Choix Reposants :", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    onSelectDarkMode(DarkModeOption.DARK)
+                                    onSelectPalette(AppPalette.ARDOISE_REPOSANTE)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.2.dp,
+                                    if (currentDarkMode == DarkModeOption.DARK && currentPalette == AppPalette.ARDOISE_REPOSANTE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("1. Nuit Ardoise 🌑", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                    Text("Contraste feutré", fontSize = 8.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    onSelectDarkMode(DarkModeOption.DARK)
+                                    onSelectPalette(AppPalette.BRUME_LAVANDE)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.2.dp,
+                                    if (currentDarkMode == DarkModeOption.DARK && currentPalette == AppPalette.BRUME_LAVANDE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("2. Lavande Nuit 🪻", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                    Text("Anti-stress oculaire", fontSize = 8.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Section 2: Palette de Couleurs (Tous les thèmes)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -128,7 +244,7 @@ fun ThemeSelectorDialog(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     ) {
                         Text(
-                            text = "3 couleurs au choix",
+                            text = "5 thèmes • Modes Repos des Yeux inclus",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,

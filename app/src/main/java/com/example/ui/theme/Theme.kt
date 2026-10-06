@@ -39,15 +39,53 @@ fun getAppColorScheme(palette: AppPalette, isDark: Boolean): ColorScheme {
             onSecondary = Color.White,
             background = when (palette) {
                 AppPalette.AVIATION -> Color(0xFFF8FAFC)
-                AppPalette.AMBER -> Color(0xFFFFFDF8)
-                AppPalette.EMERALD -> Color(0xFFF4FBF7)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFFF5F7F8)
+                AppPalette.SABLE_CHAUD -> Color(0xFFFAF7F2)
+                AppPalette.BRUME_LAVANDE -> Color(0xFFF8F8FC)
+                AppPalette.FORET_OLIVE -> Color(0xFFF5F8F6)
             },
-            onBackground = SlateDark,
-            surface = SurfaceWhite,
-            onSurface = SlateDark,
-            surfaceVariant = Color(0xFFF1F5F9),
-            onSurfaceVariant = SlateMedium,
-            outline = SurfaceBorder
+            onBackground = when (palette) {
+                AppPalette.SABLE_CHAUD -> Color(0xFF2D241E)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFF1E293B)
+                AppPalette.BRUME_LAVANDE -> Color(0xFF1F2033)
+                AppPalette.FORET_OLIVE -> Color(0xFF1B2B1E)
+                else -> SlateDark
+            },
+            surface = when (palette) {
+                AppPalette.SABLE_CHAUD -> Color(0xFFFFFDFB)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFFFFFFFF)
+                AppPalette.BRUME_LAVANDE -> Color(0xFFFFFFFF)
+                AppPalette.FORET_OLIVE -> Color(0xFFFFFFFF)
+                else -> SurfaceWhite
+            },
+            onSurface = when (palette) {
+                AppPalette.SABLE_CHAUD -> Color(0xFF2D241E)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFF1E293B)
+                AppPalette.BRUME_LAVANDE -> Color(0xFF1F2033)
+                AppPalette.FORET_OLIVE -> Color(0xFF1B2B1E)
+                else -> SlateDark
+            },
+            surfaceVariant = when (palette) {
+                AppPalette.SABLE_CHAUD -> Color(0xFFF2ECE4)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFFEAEFF1)
+                AppPalette.BRUME_LAVANDE -> Color(0xFFEDEDF6)
+                AppPalette.FORET_OLIVE -> Color(0xFFEBF0EB)
+                else -> Color(0xFFF1F5F9)
+            },
+            onSurfaceVariant = when (palette) {
+                AppPalette.SABLE_CHAUD -> Color(0xFF5D4A3D)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFF475569)
+                AppPalette.BRUME_LAVANDE -> Color(0xFF4D4F66)
+                AppPalette.FORET_OLIVE -> Color(0xFF46594B)
+                else -> SlateMedium
+            },
+            outline = when (palette) {
+                AppPalette.SABLE_CHAUD -> Color(0xFFE2D8CC)
+                AppPalette.ARDOISE_REPOSANTE -> Color(0xFFDCE3E6)
+                AppPalette.BRUME_LAVANDE -> Color(0xFFDDDDEB)
+                AppPalette.FORET_OLIVE -> Color(0xFFDAE2DA)
+                else -> SurfaceBorder
+            }
         )
     }
 }

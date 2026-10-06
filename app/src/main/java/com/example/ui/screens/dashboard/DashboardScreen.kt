@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -49,11 +50,24 @@ fun DashboardScreen(
     techniciens: List<TechnicienEntity>,
     modifier: Modifier = Modifier
 ) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val dynamicTitleColor = if (isDark) Color(0xFFF1F5F9) else AviationNavy
+    val dynamicSiteTextColor = if (isDark) Color(0xFF93C5FD) else AviationNavy
+    val dynamicSiteBgColor = if (isDark) Color(0xFF1E293B) else AviationBlue.copy(alpha = 0.12f)
+    val dynamicSubtextColor = if (isDark) Color(0xFF94A3B8) else SlateMedium
+
     val totalCoutGlobal = lots.sumOf { it.totalCoutOdd }
     val totalMissionsGlobal = odds.size
     val totalHebergement = fraisList.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
     val totalTransport = fraisList.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
     val totalDivers = fraisList.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
+
+    // Métriques spécifiques demandées pour le Badge Total Mission
+    val lotsFigesSet = lots.filter { it.figerLot }.map { it.lotN }.toSet()
+    val oddsLotsFigesCount = odds.count { it.lotN in lotsFigesSet }
+    val totalJoursTerrain = odds.sumOf { com.example.util.SiteDistances.getMissionDurationDays(it.dateDebut, it.dateFin) }
+    val nbTechEngages = odds.map { it.matricule }.filter { it.isNotBlank() }.distinct().size
+    val nbHeuresTravaillees = totalJoursTerrain * 8
 
     // Grouping by Site (Provenance & Intervention)
     val sites = listOf("Tunis", "Monastir", "Sfax", "Djerba", "Tozeur")
@@ -108,19 +122,100 @@ fun DashboardScreen(
                 KpiCard(
                     title = "Budget Engagé",
                     value = "%.3f TND".format(totalCoutGlobal),
-                    subtitle = "${lots.size} Lots actifs",
+                    subtitle = "${lots.size} Lots actifs (${lotsFigesSet.size} figés)",
                     icon = Icons.Default.MonetizationOn,
                     color = AviationBlue,
                     modifier = Modifier.weight(1f)
                 )
-                KpiCard(
-                    title = "Total Missions",
-                    value = "$totalMissionsGlobal ODD",
-                    subtitle = "${techniciens.size} Techniciens",
-                    icon = Icons.Default.FlightTakeoff,
-                    color = AmberGold,
-                    modifier = Modifier.weight(1f)
-                )
+
+                // Badge Total Mission détaillé avec les 4 métriques
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.weight(1.2f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Total Missions",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(AmberGold.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.FlightTakeoff, contentDescription = null, tint = AmberGold, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                "$totalMissionsGlobal ODD",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = AmberGold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "(${lots.size} lots)",
+                                fontSize = 10.sp,
+                                color = dynamicSubtextColor,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Précisions exigées dans le Badge Total Mission
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFBEB),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFFDE68A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.5.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("🔒 ODD Lots Figés :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("$oddsLotsFigesCount ODD", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF6EE7B7) else EmeraldGreen)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("📅 Jours Terrain :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("$totalJoursTerrain j", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("👷 Techs Engagés :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("$nbTechEngages techs", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("⏱️ Heures Travaillées :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("${nbHeuresTravaillees} h", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AmberGold)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -229,17 +324,17 @@ fun DashboardScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(odd.oddN, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AviationNavy)
+                                            Text(odd.oddN, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = dynamicTitleColor)
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
-                                                color = AviationBlue.copy(alpha = 0.12f)
+                                                color = dynamicSiteBgColor
                                             ) {
                                                 Text(
                                                     text = "${odd.siteProvenance} ➔ ${odd.siteIntervention}",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = AviationNavy,
+                                                    color = dynamicSiteTextColor,
                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                                 )
                                             }
@@ -260,12 +355,12 @@ fun DashboardScreen(
                                         Text(
                                             text = "${odd.matricule} • ${odd.mission}",
                                             fontSize = 10.sp,
-                                            color = SlateMedium
+                                            color = dynamicSubtextColor
                                         )
                                         Text(
                                             text = "Coût Mission: %.3f TND".format(odd.totalOdd),
                                             fontSize = 10.sp,
-                                            color = SlateLight
+                                            color = if (isDark) Color(0xFFCBD5E1) else SlateLight
                                         )
                                     }
 
@@ -409,9 +504,9 @@ fun DashboardScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.FolderSpecial, contentDescription = null, tint = AviationNavy, modifier = Modifier.size(18.dp))
+                                                Icon(Icons.Default.FolderSpecial, contentDescription = null, tint = dynamicTitleColor, modifier = Modifier.size(18.dp))
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Text(lot.lotN, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = AviationNavy)
+                                                Text(lot.lotN, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = dynamicTitleColor)
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
@@ -869,10 +964,10 @@ fun DashboardScreen(
                             }
 
                             val badgeTextColor = when (rank) {
-                                1 -> Color(0xFF78350F)
-                                2 -> Color(0xFF1E293B)
-                                3 -> Color(0xFF7C2D12)
-                                else -> SlateMedium
+                                1 -> if (isDark) Color(0xFFFDE68A) else Color(0xFF78350F)
+                                2 -> if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+                                3 -> if (isDark) Color(0xFFFFEDD5) else Color(0xFF7C2D12)
+                                else -> dynamicSubtextColor
                             }
 
                             val badgeLabel = when (rank) {
@@ -883,17 +978,17 @@ fun DashboardScreen(
                             }
 
                             val cardBg = when (rank) {
-                                1 -> Color(0xFFFFFBEB)
-                                2 -> Color(0xFFF8FAFC)
-                                3 -> Color(0xFFFFF7ED)
+                                1 -> if (isDark) Color(0xFF292518) else Color(0xFFFFFBEB)
+                                2 -> if (isDark) Color(0xFF1E2430) else Color(0xFFF8FAFC)
+                                3 -> if (isDark) Color(0xFF2B1D15) else Color(0xFFFFF7ED)
                                 else -> defaultSurface
                             }
 
                             val avatarBg = when (rank) {
-                                1 -> Color(0xFFFDE68A)
-                                2 -> Color(0xFFCBD5E1)
-                                3 -> Color(0xFFFED7AA)
-                                else -> IceBlue
+                                1 -> if (isDark) Color(0xFF78350F) else Color(0xFFFDE68A)
+                                2 -> if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
+                                3 -> if (isDark) Color(0xFF7C2D12) else Color(0xFFFED7AA)
+                                else -> if (isDark) Color(0xFF1E293B) else IceBlue
                             }
 
                             val rawVal = when (workloadSortMode) {
@@ -997,7 +1092,7 @@ fun DashboardScreen(
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Surface(
                                                         shape = RoundedCornerShape(4.dp),
-                                                        color = AviationBlue.copy(alpha = 0.15f)
+                                                        color = dynamicSiteBgColor
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
@@ -1006,7 +1101,7 @@ fun DashboardScreen(
                                                             Icon(
                                                                 Icons.Default.LocationOn,
                                                                 contentDescription = null,
-                                                                tint = AviationBlue,
+                                                                tint = if (isDark) Color(0xFF60A5FA) else AviationBlue,
                                                                 modifier = Modifier.size(9.dp)
                                                             )
                                                             Spacer(modifier = Modifier.width(2.dp))
@@ -1014,7 +1109,7 @@ fun DashboardScreen(
                                                                 text = item.tech.siteProvenance,
                                                                 fontSize = 9.sp,
                                                                 fontWeight = FontWeight.ExtraBold,
-                                                                color = AviationNavy
+                                                                color = dynamicSiteTextColor
                                                             )
                                                         }
                                                     }

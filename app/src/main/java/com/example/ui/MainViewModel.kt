@@ -217,9 +217,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateFrais(frais: FraisEntity, lotN: String) {
+        viewModelScope.launch {
+            repository.updateFrais(frais, lotN)
+        }
+    }
+
     fun attachDocument(idDoc: String, oddN: String, typeDoc: String, objet: String, scanUri: String?) {
         viewModelScope.launch {
             repository.attachDocument(idDoc, oddN, typeDoc, objet, scanUri)
+        }
+    }
+
+    fun updateDocument(doc: DocumentRattachementEntity) {
+        viewModelScope.launch {
+            repository.updateDocument(doc)
+        }
+    }
+
+    fun deleteDocument(doc: DocumentRattachementEntity) {
+        viewModelScope.launch {
+            repository.deleteDocument(doc)
         }
     }
 

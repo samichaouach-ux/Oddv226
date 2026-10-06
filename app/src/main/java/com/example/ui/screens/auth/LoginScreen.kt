@@ -1,5 +1,8 @@
 package com.example.ui.screens.auth
 
+import android.net.Uri
+import android.widget.VideoView
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,18 +52,47 @@ fun LoginScreen(
     var loginError by remember { mutableStateOf<String?>(null) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        AviationNavy,
-                        AviationBlue,
-                        Color(0xFF0F172A)
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // 1. Image d'arrière-plan de secours & pré-chargement
+        Image(
+            painter = painterResource(id = R.drawable.zodd_hangar_bg),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // 2. Vidéo d'animation en boucle (Hangar Tunisair Technics zODD V.2-26)
+        AndroidView(
+            factory = { ctx ->
+                VideoView(ctx).apply {
+                    val videoUri = Uri.parse("android.resource://${ctx.packageName}/${R.raw.zodd_bg_video}")
+                    setVideoURI(videoUri)
+                    setOnPreparedListener { mp ->
+                        mp.isLooping = true
+                        mp.setVolume(0f, 0f) // Silencieux pour le fond d'écran
+                        start()
+                    }
+                    setOnErrorListener { _, _, _ -> true } // Fallback silencieux sur l'image
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // 3. Voile cinématique assombri pour assurer un contraste parfait sur les textes et formulaires
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF030712).copy(alpha = 0.55f),
+                            Color(0xFF0B132B).copy(alpha = 0.72f),
+                            Color(0xFF020617).copy(alpha = 0.88f)
+                        )
                     )
                 )
-            )
-    ) {
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()

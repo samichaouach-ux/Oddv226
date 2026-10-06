@@ -40,13 +40,14 @@ import java.io.FileOutputStream
 fun AttachDocumentDialog(
     odds: List<OddEntity>,
     preselectedOddN: String? = null,
+    existingDoc: com.example.data.local.DocumentRattachementEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (idDoc: String, oddN: String, typeDoc: String, objet: String, scanUri: String?) -> Unit
 ) {
     val context = LocalContext.current
     val randomId = remember { (100..999).random() }
-    var idDoc by remember { mutableStateOf("DOC-$randomId-26") }
-    var selectedOddN by remember { mutableStateOf(preselectedOddN ?: odds.firstOrNull()?.oddN ?: "") }
+    var idDoc by remember { mutableStateOf(existingDoc?.idDoc ?: "DOC-$randomId-26") }
+    var selectedOddN by remember { mutableStateOf(existingDoc?.oddN ?: preselectedOddN ?: odds.firstOrNull()?.oddN ?: "") }
 
     val docTypes = listOf(
         "Facture hôtel / hébergement",
@@ -56,11 +57,16 @@ fun AttachDocumentDialog(
         "Ordre de mission signé",
         "Autre justificatif"
     )
-    var selectedType by remember { mutableStateOf(docTypes.first()) }
-    var objet by remember { mutableStateOf("") }
+    var selectedType by remember {
+        mutableStateOf(
+            if (existingDoc != null && docTypes.contains(existingDoc.typeDocument)) existingDoc.typeDocument
+            else docTypes.first()
+        )
+    }
+    var objet by remember { mutableStateOf(existingDoc?.objet ?: "") }
 
-    var attachedFileUri by remember { mutableStateOf<String?>(null) }
-    var attachedFileName by remember { mutableStateOf<String?>(null) }
+    var attachedFileUri by remember { mutableStateOf<String?>(existingDoc?.scanDocUri) }
+    var attachedFileName by remember { mutableStateOf<String?>(existingDoc?.scanDocUri?.substringAfterLast('/')) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     // Launcher for file selection (PDF, Image, etc.)
@@ -104,7 +110,7 @@ fun AttachDocumentDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Rattachement de Pièce Justificative",
+                text = if (existingDoc != null) "Modifier la Pièce Justificative" else "Rattachement de Pièce Justificative",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
@@ -295,7 +301,7 @@ fun AttachDocumentDialog(
                     }
                 }
             ) {
-                Text("Rattacher le Justificatif")
+                Text(if (existingDoc != null) "Enregistrer les Modifications" else "Rattacher le Justificatif")
             }
         },
         dismissButton = {

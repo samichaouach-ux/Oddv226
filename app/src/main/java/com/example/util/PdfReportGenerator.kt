@@ -526,14 +526,27 @@ object PdfReportGenerator {
             paint.color = Color.parseColor("#0F172A")
             paint.textSize = 8.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            canvas.drawText("Date : ${shortDateDots.format(Date(odd.dateDebut))}", pageWidth - marginX - 95f, currentY + 12f, paint)
+            val p2DateStr = "Date : ${shortDateDots.format(Date(odd.dateDebut))}"
+            val p2DateW = paint.measureText(p2DateStr)
+            canvas.drawText(p2DateStr, pageWidth - marginX - p2DateW, currentY + 12f, paint)
 
             paint.textSize = 7.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            canvas.drawText("DIRECTION : DIRECTION DE LA MAINTENANCE", marginX + 110f, currentY + 10f, paint)
-            canvas.drawText("DEPARTEMENT : ENTRETIEN EN LIGNE", marginX + 110f, currentY + 20f, paint)
+            paint.color = Color.parseColor("#334155")
+            val p2DirStr = "DIRECTION : DIRECTION DE LA MAINTENANCE"
+            val p2DirW = paint.measureText(p2DirStr)
+            canvas.drawText(p2DirStr, pageWidth - marginX - p2DirW, currentY + 23f, paint)
+            val p2DeptStr = "DEPARTEMENT : ENTRETIEN EN LIGNE"
+            val p2DeptW = paint.measureText(p2DeptStr)
+            canvas.drawText(p2DeptStr, pageWidth - marginX - p2DeptW, currentY + 34f, paint)
 
-            currentY += 34f
+            // Ligne séparatrice sous l'en-tête
+            paint.color = Color.parseColor("#E2E8F0")
+            paint.strokeWidth = 0.8f
+            canvas.drawLine(marginX, currentY + 44f, pageWidth - marginX, currentY + 44f, paint)
+
+            // Faire descendre le corps du texte de la page 2 pour éviter de croiser l'en-tête avec le corps
+            currentY += 60f
 
             // Grand Titre : ORDRE DE MISSION (SI)
             paint.color = Color.parseColor("#0F172A")
@@ -541,14 +554,14 @@ object PdfReportGenerator {
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             val odmTitle = "ORDRE DE MISSION (SI)"
             val odmW = paint.measureText(odmTitle)
-            canvas.drawText(odmTitle, (pageWidth - odmW) / 2f, currentY + 12f, paint)
+            canvas.drawText(odmTitle, (pageWidth - odmW) / 2f, currentY + 14f, paint)
 
             paint.textSize = 9.5f
             val oddRefTitle = "N° ${odd.oddN}"
             val oddRefW = paint.measureText(oddRefTitle)
-            canvas.drawText(oddRefTitle, (pageWidth - oddRefW) / 2f, currentY + 24f, paint)
+            canvas.drawText(oddRefTitle, (pageWidth - oddRefW) / 2f, currentY + 28f, paint)
 
-            currentY += 30f
+            currentY += 42f
 
             // Helper encadré
             fun drawBoxField(label: String, value: String, x: Float, y: Float, w: Float, h: Float, labelW: Float) {
@@ -814,16 +827,25 @@ object PdfReportGenerator {
         paint.color = Color.parseColor("#0F172A")
         paint.textSize = 8.5f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("Édité le : ${shortDate.format(Date())}", pageWidth - marginX - 90f, currentY + 16f, paint)
+        val editDateStr = "Édité le : ${shortDate.format(Date())}"
+        val editDateW = paint.measureText(editDateStr)
+        canvas.drawText(editDateStr, pageWidth - marginX - editDateW, currentY + 12f, paint)
 
-        // Badge Audit ERP
+        // Badge Audit ERP placé à droite pour ne JAMAIS croiser le logo
+        val erpBadge = "CONTRÔLE DE GESTION & AUDIT ANALYTIQUE ERP"
         paint.color = Color.parseColor("#0284C7")
         paint.textSize = 7.5f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("CONTRÔLE DE GESTION & AUDIT ANALYTIQUE ERP", marginX + 130f, currentY + 16f, paint)
+        val erpBadgeW = paint.measureText(erpBadge)
+        canvas.drawText(erpBadge, pageWidth - marginX - erpBadgeW, currentY + 25f, paint)
 
-        // Faire descendre tout le bloc texte à partir du titre pour qu'il soit parfaitement dégagé sous le logo
-        currentY += 48f
+        // Ligne de séparation sous l'en-tête
+        paint.color = Color.parseColor("#E2E8F0")
+        paint.strokeWidth = 0.8f
+        canvas.drawLine(marginX, currentY + 44f, pageWidth - marginX, currentY + 44f, paint)
+
+        // Faire descendre le corps du texte de la page 3 pour éviter de croiser l'en-tête avec le corps
+        currentY += 62f
 
         // Main Title
         paint.color = Color.parseColor("#0F2B48")
@@ -834,9 +856,9 @@ object PdfReportGenerator {
         paint.textSize = 7.5f
         paint.color = Color.parseColor("#64748B")
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        canvas.drawText("Synthèse budgétaire, économies réalisées, ventilation analytique et benchmark de réactivité hiérarchique", marginX, currentY + 11f, paint)
+        canvas.drawText("Synthèse budgétaire, économies réalisées, ventilation analytique et benchmark de réactivité hiérarchique", marginX, currentY + 13f, paint)
 
-        currentY += 20f
+        currentY += 26f
 
         // Calculs décisionnels et KPIs
         val totalBrutLot = lot.totalCoutOdd

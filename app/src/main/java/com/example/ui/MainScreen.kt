@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +29,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlin.math.roundToInt
 import com.example.R
+import com.example.data.local.DocumentRattachementEntity
+import com.example.data.local.FraisEntity
+import com.example.data.local.OddEntity
 import com.example.ui.components.EmailPreviewDialog
 import com.example.ui.components.ThemeSelectorDialog
 import com.example.ui.screens.dashboard.DashboardScreen
@@ -87,6 +91,11 @@ fun MainScreen(viewModel: MainViewModel) {
     var preselectedOddForDoc by remember { mutableStateOf<String?>(null) }
     var showInstallAppDialog by remember { mutableStateOf(false) }
 
+    // Edit items state for lots in edition mode
+    var editingOddForDialog by remember { mutableStateOf<OddEntity?>(null) }
+    var editingFraisForDialog by remember { mutableStateOf<FraisEntity?>(null) }
+    var editingDocForDialog by remember { mutableStateOf<DocumentRattachementEntity?>(null) }
+
     // Global Zoom State (0.75x to 1.6x) applied to all pages
     var globalZoomLevel by remember { mutableFloatStateOf(1.0f) }
     var showGlobalZoomBar by remember { mutableStateOf(false) }
@@ -109,7 +118,8 @@ fun MainScreen(viewModel: MainViewModel) {
                                     contentDescription = "Logo zODD v2-26",
                                     modifier = Modifier
                                         .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp)),
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)),
                                     contentScale = ContentScale.Fit
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -140,47 +150,14 @@ fun MainScreen(viewModel: MainViewModel) {
                             }
                         },
                         actions = {
-                            // Action Zoom Généralisé à toutes les pages
+                            // Action Zoom Généralisé à toutes les pages (icône seule)
                             IconButton(onClick = { showGlobalZoomBar = !showGlobalZoomBar }) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = if (globalZoomLevel != 1.0f) AmberGold.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (globalZoomLevel != 1.0f) AmberGold else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    )
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.ZoomIn,
-                                            contentDescription = "Zoom global",
-                                            tint = if (globalZoomLevel != 1.0f) AmberGold else MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(
-                                            text = "${(globalZoomLevel * 100).roundToInt()}%",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (globalZoomLevel != 1.0f) AmberGold else MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Bouton d'Installation Mobile (Android APK / iOS)
-                            FilledTonalButton(
-                                onClick = { showInstallAppDialog = true },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                modifier = Modifier.height(30.dp)
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = "Installer", modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("Installer 📲", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Icon(
+                                    imageVector = Icons.Default.ZoomIn,
+                                    contentDescription = "Zoom global",
+                                    tint = if (globalZoomLevel != 1.0f) AmberGold else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
 
                             // Manuel d'Utilisation Action
@@ -402,7 +379,11 @@ fun MainScreen(viewModel: MainViewModel) {
                             },
                             baremes = baremes,
                             coutsMission = coutsMission,
-                            onToggleFraisComptabilise = { viewModel.toggleFraisComptabilise(it, activeLot.lotN) }
+                            onToggleFraisComptabilise = { viewModel.toggleFraisComptabilise(it, activeLot.lotN) },
+                            onEditOdd = { editingOddForDialog = it },
+                            onEditFrais = { editingFraisForDialog = it },
+                            onEditDoc = { editingDocForDialog = it },
+                            onDeleteDoc = { viewModel.deleteDocument(it) }
                         )
                     } else {
                         LotListScreen(
@@ -521,6 +502,76 @@ fun MainScreen(viewModel: MainViewModel) {
                     showAttachDocDialog = false
                     preselectedOddForDoc = null
                     viewModel.attachDocument(idDoc, oddN, typeDoc, objet, scanUri)
+                }
+            )
+        }
+
+        // --- DIALOGUES DE MODIFICATION (MODE ÉDITION) ---
+        val oddToEdit = editingOddForDialog
+        if (oddToEdit != null) {
+            AddEditOddDialog(
+                lotN = oddToEdit.lotN,
+                techniciens = techniciens,
+                existingOdd = oddToEdit,
+                onDismiss = { editingOddForDialog = null },
+                onConfirm = { oddN, matricule, prov, ech, inter, deb, fin, miss, avance, detailDivers ->
+                    val updated = oddToEdit.copy(
+                        matricule = matricule,
+                        siteProvenance = prov,
+                        echelle = ech,
+                        siteIntervention = inter,
+                        dateDebut = deb,
+                        dateFin = fin,
+                        mission = miss,
+                        avanceSurMission = avance,
+                        detailDivers = detailDivers
+                    )
+                    viewModel.updateOdd(updated)
+                    editingOddForDialog = null
+                }
+            )
+        }
+
+        val fraisToEdit = editingFraisForDialog
+        if (fraisToEdit != null) {
+            val fraisLotN = allOdds.find { it.oddN == fraisToEdit.oddN }?.lotN ?: currentLot?.lotN ?: ""
+            AddEditFraisDialog(
+                odds = if (currentLotOdds.isNotEmpty()) currentLotOdds else allOdds.filter { it.lotN == fraisLotN },
+                baremes = baremes,
+                existingFrais = fraisToEdit,
+                onDismiss = { editingFraisForDialog = null },
+                onConfirm = { idFrais, oddN, cat, sousCat, unite, qte, pUnit, estComptabilise ->
+                    val updated = fraisToEdit.copy(
+                        oddN = oddN,
+                        categorie = cat,
+                        sousCategorie = sousCat,
+                        unite = unite,
+                        quantite = qte,
+                        pUnit = pUnit,
+                        estComptabilise = estComptabilise
+                    )
+                    viewModel.updateFrais(updated, fraisLotN)
+                    editingFraisForDialog = null
+                }
+            )
+        }
+
+        val docToEdit = editingDocForDialog
+        if (docToEdit != null) {
+            val docLotOdds = if (currentLotOdds.isNotEmpty()) currentLotOdds else allOdds
+            AttachDocumentDialog(
+                odds = docLotOdds,
+                existingDoc = docToEdit,
+                onDismiss = { editingDocForDialog = null },
+                onConfirm = { idDoc, oddN, typeDoc, objet, scanUri ->
+                    val updated = docToEdit.copy(
+                        oddN = oddN,
+                        typeDocument = typeDoc,
+                        objet = objet,
+                        scanDocUri = scanUri
+                    )
+                    viewModel.updateDocument(updated)
+                    editingDocForDialog = null
                 }
             )
         }

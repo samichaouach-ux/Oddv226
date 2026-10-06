@@ -26,6 +26,7 @@ fun AddEditFraisDialog(
     odds: List<OddEntity>,
     baremes: List<BaremeTarifEntity>,
     preselectedOddN: String? = null,
+    existingFrais: com.example.data.local.FraisEntity? = null,
     onDismiss: () -> Unit,
     onConfirm: (
         idFrais: String,
@@ -39,40 +40,48 @@ fun AddEditFraisDialog(
     ) -> Unit
 ) {
     val randomId = (100..999).random()
-    var idFrais by remember { mutableStateOf("FR-$randomId-26") }
-    var selectedOddN by remember { mutableStateOf(preselectedOddN ?: odds.firstOrNull()?.oddN ?: "") }
-    var estComptabilise by remember { mutableStateOf(true) }
+    var idFrais by remember { mutableStateOf(existingFrais?.idFrais ?: "FR-$randomId-26") }
+    var selectedOddN by remember { mutableStateOf(existingFrais?.oddN ?: preselectedOddN ?: odds.firstOrNull()?.oddN ?: "") }
+    var estComptabilise by remember { mutableStateOf(existingFrais?.estComptabilise ?: true) }
 
     val categories = listOf("Hébergement", "Transport", "Divers")
-    var selectedCat by remember { mutableStateOf(categories[0]) }
+    var selectedCat by remember { mutableStateOf(existingFrais?.categorie ?: categories[0]) }
 
     val sousCategories = when (selectedCat) {
         "Hébergement" -> listOf("LPD", "1/2 Pension", "Pension complète")
         "Transport" -> listOf("Voiture personnelle", "Transport en commun", "Escale")
         else -> listOf("Repas", "Autoroute", "Indemnité spécifique")
     }
-    var selectedSousCat by remember(selectedCat) { mutableStateOf(sousCategories.first()) }
+    var selectedSousCat by remember(selectedCat) { mutableStateOf(existingFrais?.sousCategorie ?: sousCategories.first()) }
 
     val defaultUnite = when (selectedCat) {
         "Hébergement" -> "Nuité"
         "Transport" -> if (selectedSousCat == "Voiture personnelle") "Taux/Km" else "FF"
         else -> if (selectedSousCat == "Repas") "Repas" else "FF"
     }
-    var unite by remember(selectedCat, selectedSousCat) { mutableStateOf(defaultUnite) }
+    var unite by remember(selectedCat, selectedSousCat) { mutableStateOf(existingFrais?.unite ?: defaultUnite) }
 
-    var quantiteStr by remember { mutableStateOf("1") }
+    var quantiteStr by remember {
+        mutableStateOf(
+            existingFrais?.quantite?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "1"
+        )
+    }
     var pUnitStr by remember(selectedCat, selectedSousCat) {
-        val defaultPUnit = when {
-            selectedCat == "Hébergement" && selectedSousCat == "LPD" -> "110.000"
-            selectedCat == "Hébergement" && selectedSousCat == "1/2 Pension" -> "140.000"
-            selectedCat == "Hébergement" && selectedSousCat == "Pension complète" -> "180.000"
-            selectedCat == "Transport" && selectedSousCat == "Voiture personnelle" -> "0.450"
-            selectedCat == "Transport" && selectedSousCat == "Escale" -> "60.750"
-            selectedCat == "Divers" && selectedSousCat == "Repas" -> "25.000"
-            selectedCat == "Divers" && selectedSousCat == "Autoroute" -> "12.000"
-            else -> "50.000"
+        if (existingFrais != null && existingFrais.categorie == selectedCat && existingFrais.sousCategorie == selectedSousCat) {
+            mutableStateOf(String.format(Locale.US, "%.3f", existingFrais.pUnit))
+        } else {
+            val defaultPUnit = when {
+                selectedCat == "Hébergement" && selectedSousCat == "LPD" -> "110.000"
+                selectedCat == "Hébergement" && selectedSousCat == "1/2 Pension" -> "140.000"
+                selectedCat == "Hébergement" && selectedSousCat == "Pension complète" -> "180.000"
+                selectedCat == "Transport" && selectedSousCat == "Voiture personnelle" -> "0.450"
+                selectedCat == "Transport" && selectedSousCat == "Escale" -> "60.750"
+                selectedCat == "Divers" && selectedSousCat == "Repas" -> "25.000"
+                selectedCat == "Divers" && selectedSousCat == "Autoroute" -> "12.000"
+                else -> "50.000"
+            }
+            mutableStateOf(defaultPUnit)
         }
-        mutableStateOf(defaultPUnit)
     }
 
     var expandedOdd by remember { mutableStateOf(false) }
@@ -104,7 +113,7 @@ fun AddEditFraisDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Ajouter une Ligne de Frais",
+                text = if (existingFrais != null) "Modifier le Frais de Mission" else "Ajouter une Ligne de Frais",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
@@ -446,7 +455,7 @@ fun AddEditFraisDialog(
                     }
                 }
             ) {
-                Text("Enregistrer Frais")
+                Text(if (existingFrais != null) "Enregistrer les Modifications" else "Enregistrer Frais")
             }
         },
         dismissButton = {

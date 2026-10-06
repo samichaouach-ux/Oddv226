@@ -611,6 +611,18 @@ class ZoddRepository(
         recalculateLotTotals(lotN)
     }
 
+    suspend fun updateFrais(frais: FraisEntity, lotN: String) {
+        val montant = frais.quantite * frais.pUnit
+        val updated = frais.copy(
+            montant = montant,
+            aComptabiliser = if (frais.estComptabilise) montant else 0.0,
+            updatedAt = System.currentTimeMillis(),
+            isSynced = false
+        )
+        dao.updateFrais(updated)
+        recalculateLotTotals(lotN)
+    }
+
     // --- DOCUMENT RATTACHEMENT ---
     suspend fun attachDocument(
         idDoc: String,
@@ -628,6 +640,14 @@ class ZoddRepository(
             scanDocUri = uri
         )
         dao.insertDocument(doc)
+    }
+
+    suspend fun updateDocument(doc: DocumentRattachementEntity) {
+        dao.updateDocument(doc)
+    }
+
+    suspend fun deleteDocument(doc: DocumentRattachementEntity) {
+        dao.deleteDocument(doc)
     }
 
     // --- WORKFLOW: FIGER LOT (GEL & PDF & EMAIL TO DM) ---

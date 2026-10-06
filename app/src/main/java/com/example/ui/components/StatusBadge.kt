@@ -16,12 +16,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +35,7 @@ fun StatusBadge(
     isFige: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
     val (bgColor, textColor, borderColor, icon, label) = when {
         status == "ARCHIVE" -> Quintuple(
             EmeraldLight, EmeraldGreen, EmeraldGreen, Icons.Default.Archive, "ARCHIVÉ DAF"
@@ -44,7 +47,11 @@ fun StatusBadge(
             CrimsonLight, CrimsonRed, CrimsonRed, Icons.Default.Close, "REFUSÉ (${status.removePrefix("REFUSE_")})"
         )
         isFige || status.startsWith("FIGE") -> Quintuple(
-            IceBlue, CobaltPrimary, SkyAccent, Icons.Default.Lock, "FIGÉ (Lecture Seule)"
+            if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+            if (isDark) Color.White else Color.Black,
+            if (isDark) Color(0xFF475569) else Color(0xFF94A3B8),
+            Icons.Default.Lock,
+            "FIGÉ (Lecture Seule)"
         )
         else -> Quintuple(
             AmberLight, AmberGold, AmberGold, Icons.Default.Edit, "EN ÉDITION"
