@@ -362,7 +362,8 @@ fun LotListScreen(
                                             fontSize = 13.sp
                                         )
                                         Text(
-                                            text = "Total : %.3f TND • Dir : ${activeSelectedLot.directionActuelle}".format(activeSelectedLot.totalCoutOdd),
+                                            text = if (activeSelectedLot.figerLot) "Total : %.3f TND • Dir : ${activeSelectedLot.directionActuelle}".format(activeSelectedLot.totalCoutOdd)
+                                            else "Total : %.3f TND (En édition)".format(activeSelectedLot.totalCoutOdd),
                                             fontSize = 11.sp,
                                             color = SlateMedium
                                         )
@@ -640,20 +641,21 @@ private fun LotCardItem(
                         fontSize = 12.sp
                     )
 
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Icon(
-                        imageVector = Icons.Default.AccountBalance,
-                        contentDescription = null,
-                        tint = AmberGold,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Dir: ${lot.directionActuelle}",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp
-                    )
+                    if (lot.figerLot) {
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Icon(
+                            imageVector = Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            tint = AmberGold,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Dir: ${lot.directionActuelle}",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 Text(
@@ -751,29 +753,22 @@ private fun LotCardItem(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(modifier = Modifier.padding(10.dp)) {
+                                        // Header ODD : N° ODD et Montant sur la 1ère ligne (au-dessus du matricule pour éviter le saut de ligne)
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(4.dp),
-                                                    color = MaterialTheme.colorScheme.primaryContainer
-                                                ) {
-                                                    Text(
-                                                        text = odd.oddN,
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = MaterialTheme.colorScheme.primaryContainer
+                                            ) {
                                                 Text(
-                                                    text = "Tech: ${odd.matricule} (Éch. ${odd.echelle})",
+                                                    text = odd.oddN,
                                                     fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
                                             Text(
@@ -783,6 +778,13 @@ private fun LotCardItem(
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                         }
+
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Text(
+                                            text = "Tech: ${odd.matricule} (Éch. ${odd.echelle})",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
 
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
@@ -849,7 +851,7 @@ private fun LotCardItem(
                         }
                     }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -858,19 +860,25 @@ private fun LotCardItem(
                     Button(
                         onClick = onClick,
                         shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(Icons.Default.Fullscreen, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(Icons.Default.Fullscreen, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (lot.figerLot) "Dossier Complet en Plein Écran ➔" else "Gérer le Dossier en Plein Écran ➔",
-                            fontSize = 11.5.sp,
+                            text = if (lot.figerLot) "Dossier Complet ➔" else "Gérer Dossier ➔",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    TextButton(onClick = { isExpanded = false }) {
-                        Text("Replier ▲", fontSize = 11.sp)
+                    TextButton(
+                        onClick = { isExpanded = false },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text("Replier ▲", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -962,11 +970,20 @@ fun LotReadOnlyDetailsDialog(
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        text = "Dir : ${lot.directionActuelle}",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp
-                    )
+                    if (lot.figerLot) {
+                        Text(
+                            text = "Dir : ${lot.directionActuelle}",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        Text(
+                            text = "Mode Édition",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp,
+                            color = AmberGold
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

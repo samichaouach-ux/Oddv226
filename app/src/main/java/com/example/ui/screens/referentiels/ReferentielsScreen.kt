@@ -699,13 +699,15 @@ private fun TechniciensTab(
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
                                         color = MaterialTheme.colorScheme.surfaceVariant
                                     ) {
                                         Text(
-                                            text = "Éch. ${tech.echelle}",
+                                            text = "Échelle : ${tech.echelle}",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 10.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1090,16 +1092,26 @@ private fun DirectionsTab(
                             color = SlateMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        Text(
-                            text = "E-mail : ${dir.email}",
-                            fontSize = 11.sp,
-                            color = SkyAccent
-                        )
-                        Text(
-                            text = "Tél : ${dir.telephone}",
-                            fontSize = 11.sp,
-                            color = SlateLight
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "E-mail : ${dir.email}",
+                                fontSize = 9.5.sp,
+                                color = SkyAccent,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            Text(
+                                text = "• Tél : ${dir.telephone}",
+                                fontSize = 9.5.sp,
+                                color = SlateLight,
+                                maxLines = 1
+                            )
+                        }
                     }
 
                     Row(

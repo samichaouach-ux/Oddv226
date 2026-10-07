@@ -62,12 +62,14 @@ fun DashboardScreen(
     val totalTransport = fraisList.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
     val totalDivers = fraisList.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
 
-    // Métriques spécifiques demandées pour le Badge Total Mission
+    // Métriques spécifiques demandées pour le Badge Total Mission et Budget Engagé
+    val budgetEngageLotsFiges = lots.filter { it.figerLot }.sumOf { it.totalCoutOdd }
     val lotsFigesSet = lots.filter { it.figerLot }.map { it.lotN }.toSet()
     val oddsLotsFigesCount = odds.count { it.lotN in lotsFigesSet }
     val totalJoursTerrain = odds.sumOf { com.example.util.SiteDistances.getMissionDurationDays(it.dateDebut, it.dateFin) }
     val nbTechEngages = odds.map { it.matricule }.filter { it.isNotBlank() }.distinct().size
     val nbHeuresTravaillees = totalJoursTerrain * 8
+    val coutHoraireBudgetEngage = if (nbHeuresTravaillees > 0) budgetEngageLotsFiges / nbHeuresTravaillees else 0.0
 
     // Grouping by Site (Provenance & Intervention)
     val sites = listOf("Tunis", "Monastir", "Sfax", "Djerba", "Tozeur")
@@ -119,21 +121,106 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                KpiCard(
-                    title = "Budget Engagé",
-                    value = "%.3f TND".format(totalCoutGlobal),
-                    subtitle = "${lots.size} Lots actifs (${lotsFigesSet.size} figés)",
-                    icon = Icons.Default.MonetizationOn,
-                    color = AviationBlue,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Badge Total Mission détaillé avec les 4 métriques
+                // Badge 1 : Budget Engagé (représente SEULEMENT les lots figés)
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier.weight(1.2f)
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Budget Engagé",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(AviationBlue.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = AviationBlue, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                "%.3f TND".format(budgetEngageLotsFiges),
+                                fontSize = 15.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = AviationBlue
+                            )
+                        }
+                        Text(
+                            "${lots.size} lots actifs (${lotsFigesSet.size} figés)",
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                            color = dynamicSubtextColor,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Précisions sous le nombre de lots actifs
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFBFDBFE)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.5.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("⏱️ Coût Horaire :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("%.3f TND/h".format(coutHoraireBudgetEngage), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AviationNavy, maxLines = 1)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("🔒 Lots Figés :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("${lotsFigesSet.size} figés", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF6EE7B7) else EmeraldGreen, maxLines = 1)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("📊 Ratio Figé :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    val pct = if (totalCoutGlobal > 0) (budgetEngageLotsFiges / totalCoutGlobal) * 100 else 0.0
+                                    Text("%.1f %%".format(pct), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor, maxLines = 1)
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("🏷️ Moy. par ODD :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    val avgOdd = if (oddsLotsFigesCount > 0) budgetEngageLotsFiges / oddsLotsFigesCount else 0.0
+                                    Text("%.3f TND".format(avgOdd), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AviationBlue, maxLines = 1)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Badge 2 : Total Missions (taille équilibrée weight(1f))
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(
@@ -161,18 +248,19 @@ fun DashboardScreen(
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 "$totalMissionsGlobal ODD",
-                                fontSize = 18.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = AmberGold
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "(${lots.size} lots)",
-                                fontSize = 10.sp,
-                                color = dynamicSubtextColor,
-                                modifier = Modifier.padding(bottom = 2.dp)
+                                color = AmberGold,
+                                maxLines = 1
                             )
                         }
+                        Text(
+                            "(${lots.size} lots actifs)",
+                            fontSize = 10.sp,
+                            color = dynamicSubtextColor,
+                            modifier = Modifier.padding(top = 2.dp),
+                            maxLines = 1
+                        )
 
                         Spacer(modifier = Modifier.height(6.dp))
 
@@ -189,28 +277,28 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("🔒 ODD Lots Figés :", fontSize = 9.sp, color = dynamicSubtextColor)
-                                    Text("$oddsLotsFigesCount ODD", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF6EE7B7) else EmeraldGreen)
+                                    Text("$oddsLotsFigesCount ODD", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF6EE7B7) else EmeraldGreen, maxLines = 1)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("📅 Jours Terrain :", fontSize = 9.sp, color = dynamicSubtextColor)
-                                    Text("$totalJoursTerrain j", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor)
+                                    Text("$totalJoursTerrain j", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor, maxLines = 1)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("👷 Techs Engagés :", fontSize = 9.sp, color = dynamicSubtextColor)
-                                    Text("$nbTechEngages techs", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor)
+                                    Text("$nbTechEngages techs", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicTitleColor, maxLines = 1)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("⏱️ Heures Travaillées :", fontSize = 9.sp, color = dynamicSubtextColor)
-                                    Text("${nbHeuresTravaillees} h", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AmberGold)
+                                    Text("⏱️ Heures :", fontSize = 9.sp, color = dynamicSubtextColor)
+                                    Text("${nbHeuresTravaillees} h", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AmberGold, maxLines = 1)
                                 }
                             }
                         }
@@ -342,7 +430,9 @@ fun DashboardScreen(
                                         Text(
                                             text = "Frais : %.3f TND".format(totalFraisOdd),
                                             fontWeight = FontWeight.ExtraBold,
-                                            fontSize = 12.sp,
+                                            fontSize = 11.5.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -355,11 +445,17 @@ fun DashboardScreen(
                                         Text(
                                             text = "${odd.matricule} • ${odd.mission}",
                                             fontSize = 10.sp,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false),
                                             color = dynamicSubtextColor
                                         )
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "Coût Mission: %.3f TND".format(odd.totalOdd),
+                                            text = "Coût: %.3f TND".format(odd.totalOdd),
                                             fontSize = 10.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
                                             color = if (isDark) Color(0xFFCBD5E1) else SlateLight
                                         )
                                     }

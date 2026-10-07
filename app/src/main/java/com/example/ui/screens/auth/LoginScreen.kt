@@ -176,11 +176,12 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Logo & Badge Tunisair Technics
+            // Logo & Badge Tunisair Technics (fond transparent et encadré d'un trait blanc)
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = Color.White.copy(alpha = 0.95f),
-                shadowElevation = 6.dp,
+                color = Color.Transparent,
+                border = BorderStroke(2.dp, Color.White),
+                shadowElevation = 0.dp,
                 modifier = Modifier.size(80.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {

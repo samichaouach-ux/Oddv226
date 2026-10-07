@@ -379,8 +379,10 @@ object PdfReportGenerator {
 
         // =========================================================================
         // BORDEREAU DE TRANSMISSION HIÉRARCHIQUE & VISAS DES 7 DIRECTIONS
-        // (SEUL ÉLÉMENT SUR LA PAGE 1 APRÈS LE TABLEAU DU LOT CONFORME À LA PAGE 1 JOINTE)
+        // (TOUJOURS POSITIONNÉ EN BAS DE LA PAGE 1 ET JUSTE AU-DESSUS DU PIED DE PAGE)
         // =========================================================================
+        currentY = maxOf(currentY, 650f)
+
         paint.color = Color.parseColor("#0F2B48")
         paint.textSize = 10f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -809,6 +811,79 @@ object PdfReportGenerator {
 
             drawPageFooter(canvas, pageNumber)
             pdfDocument.finishPage(page)
+
+            // BORDEREAU DES PIÈCES JUSTIFICATIVES NUMÉRISÉES GED SPÉCIFIQUE À CET ORDRE DE MISSION
+            val docsForThisOdd = documents.filter { it.oddN == odd.oddN }
+            if (docsForThisOdd.isNotEmpty()) {
+                pageNumber++
+                pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                page = pdfDocument.startPage(pageInfo)
+                canvas = page.canvas
+                currentY = 36f
+
+                drawTunisairTechnicsLogo(canvas, marginX, currentY)
+                currentY += 44f
+
+                paint.color = Color.parseColor("#0F2B48")
+                paint.textSize = 11.5f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                canvas.drawText("BORDEREAU DES PIÈCES JUSTIFICATIVES GED — ORDRE DE MISSION N° ${odd.oddN}", marginX, currentY, paint)
+
+                currentY += 14f
+                paint.textSize = 8f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                paint.color = Color.parseColor("#64748B")
+                canvas.drawText("Technicien : $techNom (${odd.matricule}) • Trajet : ${odd.siteProvenance} -> ${odd.siteIntervention} • ${docsForThisOdd.size} pièce(s) GED rattachée(s)", marginX, currentY, paint)
+
+                currentY += 16f
+
+                val docHeaderH = 18f
+                val docRowH = 16f
+                paint.color = Color.parseColor("#CBD5E1")
+                canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + docHeaderH, paint)
+
+                paint.color = Color.parseColor("#0F172A")
+                paint.textSize = 7.5f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                canvas.drawText("RÉF PIÈCE GED", marginX + 4f, currentY + 12f, paint)
+                canvas.drawText("NATURE DOCUMENT", marginX + 110f, currentY + 12f, paint)
+                canvas.drawText("OBJET / RÉFÉRENCE", marginX + 240f, currentY + 12f, paint)
+                canvas.drawText("DATE DÉPÔT", marginX + 415f, currentY + 12f, paint)
+                canvas.drawText("CERTIFICATION GED", marginX + 475f, currentY + 12f, paint)
+
+                currentY += docHeaderH
+
+                docsForThisOdd.forEachIndexed { dIdx, doc ->
+                    if (dIdx % 2 == 1) {
+                        paint.color = Color.parseColor("#F8FAFC")
+                        canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + docRowH, paint)
+                    }
+
+                    paint.textSize = 7f
+                    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                    paint.color = Color.parseColor("#1E293B")
+
+                    canvas.drawText(doc.idDoc.take(16), marginX + 4f, currentY + 11f, paint)
+                    canvas.drawText(doc.typeDocument.take(20), marginX + 110f, currentY + 11f, paint)
+                    canvas.drawText(doc.objet.take(28), marginX + 240f, currentY + 11f, paint)
+                    canvas.drawText(shortDate.format(Date(doc.dateEnvoie)), marginX + 415f, currentY + 11f, paint)
+
+                    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                    paint.color = Color.parseColor("#15803D")
+                    canvas.drawText("Certifié Conforme", marginX + 475f, currentY + 11f, paint)
+
+                    paint.color = Color.parseColor("#E2E8F0")
+                    paint.strokeWidth = 0.8f
+                    paint.style = Paint.Style.STROKE
+                    canvas.drawLine(marginX, currentY + docRowH, marginX + contentWidth, currentY + docRowH, paint)
+                    paint.style = Paint.Style.FILL
+
+                    currentY += docRowH
+                }
+
+                drawPageFooter(canvas, pageNumber)
+                pdfDocument.finishPage(page)
+            }
         }
 
         // =========================================================================
@@ -1176,76 +1251,6 @@ object PdfReportGenerator {
         drawPageFooter(canvas, pageNumber)
         pdfDocument.finishPage(page)
 
-        // =========================================================================
-        // INVENTAIRE FINAL DES PIÈCES JUSTIFICATIVES NUMÉRISÉES CERTIFIÉES GED
-        // =========================================================================
-        if (documentsForLot.isNotEmpty()) {
-            pageNumber++
-            pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
-            page = pdfDocument.startPage(pageInfo)
-            canvas = page.canvas
-            currentY = 40f
-
-            drawTunisairTechnicsLogo(canvas, marginX, currentY)
-            currentY += 44f
-
-            paint.color = Color.parseColor("#0F2B48")
-            paint.textSize = 12f
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            canvas.drawText("BORDEREAU DES PIÈCES JUSTIFICATIVES NUMÉRISÉES GED (${documentsForLot.size} PIÈCES)", marginX, currentY, paint)
-
-            currentY += 16f
-
-            val docHeaderH = 18f
-            val docRowH = 16f
-            paint.color = Color.parseColor("#CBD5E1")
-            canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + docHeaderH, paint)
-
-            paint.color = Color.parseColor("#0F172A")
-            paint.textSize = 7.5f
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            canvas.drawText("RÉF PIÈCE GED", marginX + 4f, currentY + 12f, paint)
-            canvas.drawText("N° ODD", marginX + 85f, currentY + 12f, paint)
-            canvas.drawText("NATURE DOCUMENT", marginX + 160f, currentY + 12f, paint)
-            canvas.drawText("OBJET / RÉFÉRENCE", marginX + 270f, currentY + 12f, paint)
-            canvas.drawText("DATE DÉPÔT", marginX + 415f, currentY + 12f, paint)
-            canvas.drawText("CERTIFICATION GED", marginX + 475f, currentY + 12f, paint)
-
-            currentY += docHeaderH
-
-            documentsForLot.forEachIndexed { dIdx, doc ->
-                if (dIdx % 2 == 1) {
-                    paint.color = Color.parseColor("#F8FAFC")
-                    canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + docRowH, paint)
-                }
-
-                paint.textSize = 7f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-                paint.color = Color.parseColor("#1E293B")
-
-                canvas.drawText(doc.idDoc.take(12), marginX + 4f, currentY + 11f, paint)
-                canvas.drawText(doc.oddN.take(10), marginX + 85f, currentY + 11f, paint)
-                canvas.drawText(doc.typeDocument.take(18), marginX + 160f, currentY + 11f, paint)
-                canvas.drawText(doc.objet.take(24), marginX + 270f, currentY + 11f, paint)
-                canvas.drawText(shortDate.format(Date(doc.dateEnvoie)), marginX + 415f, currentY + 11f, paint)
-
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                paint.color = Color.parseColor("#15803D")
-                canvas.drawText("Certifié Conforme", marginX + 475f, currentY + 11f, paint)
-
-                paint.color = Color.parseColor("#E2E8F0")
-                paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 0.8f
-                canvas.drawLine(marginX, currentY + docRowH, marginX + contentWidth, currentY + docRowH, paint)
-                paint.style = Paint.Style.FILL
-
-                currentY += docRowH
-            }
-
-            drawPageFooter(canvas, pageNumber)
-            pdfDocument.finishPage(page)
-        }
-
         // Save file in app cache
         val pdfFileName = "Rapport_Definitif_Lot_${lot.lotN.replace('/', '_')}.pdf"
         val pdfFile = File(context.cacheDir, pdfFileName)
@@ -1459,13 +1464,13 @@ object PdfReportGenerator {
         paint.color = Color.parseColor("#92400E")
         paint.textSize = 8.5f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("★ HOMMAGE & REMERCIEMENTS OFFICIELS :", marginX + 10f, currentY + 16f, paint)
+        canvas.drawText("★ HOMMAGE & REMERCIEMENTS — MADAME NAHLA ZAOUI :", marginX + 10f, currentY + 16f, paint)
 
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
-        paint.textSize = 8f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        paint.textSize = 7.5f
         paint.color = Color.parseColor("#78350F")
         canvas.drawText(
-            "Remerciements à Madame Nahla Zaouia pour sa contribution à la réflexion et sa collaboration à la mise en place de cette application.",
+            "L'application zODD V.2-26 honore la contribution déterminante de Madame Nahla Zaoui (Chargée de Gestion & Traitement des lots).",
             marginX + 10f,
             currentY + 32f,
             paint

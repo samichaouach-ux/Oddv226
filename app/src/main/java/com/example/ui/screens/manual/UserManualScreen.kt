@@ -122,13 +122,6 @@ fun UserManualScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                Text(
-                                    text = "Remerciements à Madame Nahla Zaouia pour sa contribution à la réflexion et sa collaboration à la mise en place de cette application.",
-                                    fontSize = 10.sp,
-                                    fontStyle = FontStyle.Italic,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 13.sp
-                                )
                             }
                         }
 
@@ -189,11 +182,57 @@ fun UserManualScreen(
                         }
                     }
 
+                    // Hommage & Texte officiel placé au-dessous du bouton téléchargement
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(AmberGold.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.WorkspacePremium,
+                                    contentDescription = null,
+                                    tint = AmberGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Hommage & Remerciements — Madame Nahla Zaoui",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "L'application zODD V.2-26 et l'ensemble de ses règles de gestion honorent la contribution déterminante de Madame Nahla Zaoui (Chargée de Gestion & Traitement des lots) pour sa rigueur, son expertise métier et son dévouement constant dans la conformité des ordres de déplacement.",
+                                    fontSize = 10.5.sp,
+                                    lineHeight = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
                     // Search inside manual
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Rechercher dans le manuel (Figer, ODD, Frais, DAF, Distances...)...", fontSize = 12.sp) },
+                        placeholder = { Text("Rechercher dans le manuel (Figer, ODD, Frais, Distances...)...", fontSize = 12.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
@@ -437,32 +476,6 @@ fun UserManualScreen(
                                 lineHeight = zsp(15),
                                 color = SlateLight
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color.White.copy(alpha = 0.15f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = AmberGold,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Remerciements à Madame Nahla Zaouia pour sa contribution à la réflexion et sa collaboration à la mise en place de cette application.",
-                                        fontSize = zsp(10),
-                                        fontStyle = FontStyle.Italic,
-                                        color = Color.White.copy(alpha = 0.95f),
-                                        lineHeight = zsp(14)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -746,9 +759,9 @@ private fun getManualChapters(): List<ManualChapter> {
                 ),
                 ManualSection(
                     sectionTitle = "1.3 Hommage & Conduite du Changement",
-                    content = "La mise en place de zODD V.2-26 résulte d'une étroite synergie entre la Direction Administrative et Financière (DAF) et les directions opérationnelles de maintenance aéronautique. L'application honore la contribution déterminante de Madame Nahla Zaoui (Chargée de Gestion & Traitement des lots) dans la formalisation des règles de gestion, la conformité des barèmes et la rigueur du traitement des dossiers de mission.",
+                    content = "La mise en place de zODD V.2-26 résulte d'une étroite synergie entre la Direction Administrative et Financière et les directions opérationnelles de maintenance aéronautique. L'application honore la contribution déterminante de Madame Nahla Zaoui (Chargée de Gestion & Traitement des lots) dans la formalisation des règles de gestion, la conformité des barèmes et la rigueur du traitement des dossiers de mission.",
                     frontEndAction = "Mention solennelle de reconnaissance figurant en en-tête du manuel d'utilisation et sur la page de garde officielle de tous les rapports PDF générés.",
-                    backEndProcess = "Traçabilité des règles métier d'audit DAF intégrées nativement dans le moteur de calcul de l'application.",
+                    backEndProcess = "Traçabilité des règles métier d'audit intégrées nativement dans le moteur de calcul de l'application.",
                     tips = listOf("Consultez la version PDF officielle téléchargeable via le bouton 'Télécharger PDF' en haut de cet écran.")
                 )
             )
@@ -1168,7 +1181,7 @@ private fun getManualChapters(): List<ManualChapter> {
                 ManualSection(
                     sectionTitle = "10.2 Profils d'Accès Rapides & Déconnexion depuis le Menu",
                     content = "Pour faciliter les transitions et la simulation des visas sur le terrain, la page d'accès propose également la liste des profils hiérarchiques officiels de Tunisair Technics :\n\n" +
-                            "• Madame Nahla Zaoui — Chargée de Gestion & Traitement des Lots (DAF) avec droits de supervision globale et visa étendu.\n" +
+                            "• Madame Nahla Zaoui — Chargée de Gestion & Traitement des Lots avec droits de supervision globale et visa étendu.\n" +
                             "• Directeurs des 7 entités : DM (Maintenance), DCT (Contrôle Technique), DGRT (Ressources Techniques), DCST (Support & Coordination), AUDIT (Audit & Qualité), DG (Direction Générale), DAF (Administration & Finances).\n\n" +
                             "★ DÉCONNEXION AUTOMATIQUE DEPUIS L'APPLICATION :\n" +
                             "Dans la barre supérieure de l'application, un clic sur le menu 'Profil & Contrôle d'Accès' ouvre la liste des profils. Dès la sélection d'un profil, l'application déconnecte immédiatement la session en cours et renvoie instantanément sur la page d'accès (`LoginScreen`) pour confirmation et nouvelle authentification.",
