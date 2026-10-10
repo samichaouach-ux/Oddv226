@@ -414,7 +414,7 @@ fun LoginScreen(
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = if (passwordVisible) "Masquer le mot de passe" else "Afficher le mot de passe",
-                                    tint = SlateMedium,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -483,7 +483,7 @@ fun LoginScreen(
                             text = "OU",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = SlateMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                         HorizontalDivider(modifier = Modifier.weight(1f))
@@ -571,7 +571,7 @@ fun LoginScreen(
                             text = "OU ACCÈS PAR RÔLE DIRECT",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = SlateMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                         HorizontalDivider(modifier = Modifier.weight(1f))
@@ -644,12 +644,12 @@ fun LoginScreen(
                                             }
                                         }
                                         Text(item.roleName, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(item.description, fontSize = 9.5.sp, color = SlateMedium, maxLines = 1)
+                                        Text(item.description, fontSize = 9.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                                     }
                                     Icon(
                                         Icons.Default.ChevronRight,
                                         contentDescription = null,
-                                        tint = SlateMedium,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }

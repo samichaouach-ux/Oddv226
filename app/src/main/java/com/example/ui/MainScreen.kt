@@ -136,7 +136,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                             text = "by msc",
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = AviationBlue,
+                                            color = if (isDark) SkyAccent else AviationBlue,
                                             modifier = Modifier.padding(bottom = 1.dp)
                                         )
                                     }
@@ -649,7 +649,7 @@ fun MainScreen(viewModel: MainViewModel) {
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("BASCULER VERS UN AUTRE RÔLE SIGNATAIRE :", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SlateMedium)
+                        Text("BASCULER VERS UN AUTRE RÔLE SIGNATAIRE :", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         // Base de données Firebase Console Statut
                         Surface(

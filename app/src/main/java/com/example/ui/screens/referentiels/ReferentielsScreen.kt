@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -79,6 +80,11 @@ fun ReferentielsScreen(
     var baremeToDelete by remember { mutableStateOf<BaremeTarifEntity?>(null) }
 
     var showResetConfirmDialog by remember { mutableStateOf(false) }
+
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val dynamicTextNavy = if (isDark) Color(0xFF93C5FD) else AviationNavy
+    val dynamicTextSub = if (isDark) Color(0xFFCBD5E1) else SlateMedium
+    val dynamicTextMuted = if (isDark) Color(0xFF94A3B8) else SlateLight
 
     Column(modifier = modifier.fillMaxSize()) {
         ScrollableTabRow(
@@ -464,7 +470,7 @@ private fun TechniciensTab(
                                 Text(
                                     text = "Matrice kilométrique des bases et aéroports de Tunisie",
                                     fontSize = 10.sp,
-                                    color = SlateMedium
+                                    color = dynamicTextSub
                                 )
                             }
                         }
@@ -618,7 +624,7 @@ private fun TechniciensTab(
                                                         Text(
                                                             text = "(A/R: $netAR km)",
                                                             fontSize = 9.sp,
-                                                            color = SlateLight
+                                                            color = dynamicTextMuted
                                                         )
                                                     }
                                                 }
@@ -1089,7 +1095,7 @@ private fun DirectionsTab(
                         Text(
                             text = "Directeur : ${dir.directeur}",
                             fontSize = 12.sp,
-                            color = SlateMedium,
+                            color = dynamicTextSub,
                             fontWeight = FontWeight.SemiBold
                         )
                         Row(
@@ -1108,7 +1114,7 @@ private fun DirectionsTab(
                             Text(
                                 text = "• Tél : ${dir.telephone}",
                                 fontSize = 9.5.sp,
-                                color = SlateLight,
+                                color = dynamicTextMuted,
                                 maxLines = 1
                             )
                         }
@@ -1277,7 +1283,7 @@ private fun CoutsMissionTab(
                             text = "📐 Formules et conditions officielles de valorisation :",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AviationNavy
+                            color = dynamicTextNavy
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
@@ -1363,7 +1369,7 @@ private fun CoutsMissionTab(
                                         text = "✈️ Régime standard (Intervention sur avion, Visite, Formation, Transport)",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp,
-                                        color = AviationNavy
+                                        color = dynamicTextNavy
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
@@ -1382,7 +1388,7 @@ private fun CoutsMissionTab(
                             text = "📊 Grille des taux journaliers par type de mission et échelle :",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AviationNavy
+                            color = dynamicTextNavy
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
@@ -1406,7 +1412,7 @@ private fun CoutsMissionTab(
                                                 text = type,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 12.sp,
-                                                color = AviationNavy
+                                                color = dynamicTextNavy
                                             )
                                             val regleName = when {
                                                 type.contains("Assistance", ignoreCase = true) -> "Tranches 8j"
@@ -1450,7 +1456,7 @@ private fun CoutsMissionTab(
                                                         Text(
                                                             text = "Éch. ${c.echelleMin}-${c.echelleMax} :",
                                                             fontSize = 10.sp,
-                                                            color = SlateMedium
+                                                            color = dynamicTextSub
                                                         )
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Text(
@@ -1760,7 +1766,7 @@ private fun CoutsMissionTab(
                                     Text(
                                         text = cout.observation,
                                         fontSize = 10.sp,
-                                        color = SlateMedium,
+                                        color = dynamicTextSub,
                                         maxLines = 1
                                     )
                                 }
@@ -1777,7 +1783,7 @@ private fun CoutsMissionTab(
                             Text(
                                 text = "/ jour",
                                 fontSize = 10.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                         }
 
@@ -1884,7 +1890,7 @@ private fun BaremesTab(
                         Text(
                             text = "Catégorie : ${b.categorie} • Échelle : ${b.echelleMin}-${b.echelleMax}",
                             fontSize = 11.sp,
-                            color = SlateMedium
+                            color = dynamicTextSub
                         )
                     }
 
@@ -1898,7 +1904,7 @@ private fun BaremesTab(
                         Text(
                             text = "/ ${b.unite}",
                             fontSize = 11.sp,
-                            color = SlateMedium
+                            color = dynamicTextSub
                         )
                     }
 
@@ -2013,7 +2019,7 @@ private fun InstallationAndSettingsTab(
                             Text(
                                 text = "Palette de couleurs (Bleu Aéro, Rouge Tunisair, Vert Émeraude, Ambre, Indigo, Ardoise) & Mode Sombre/Clair",
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                         }
                     }
@@ -2065,7 +2071,7 @@ private fun InstallationAndSettingsTab(
                             Text(
                                 text = "Package natif 'app-debug.apk' (33 Mo) • 100% Hors-Ligne",
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                         }
                     }
@@ -2130,7 +2136,7 @@ private fun InstallationAndSettingsTab(
                             Text(
                                 text = "Application de Bureau (PWA), Émulateur Android WSA / BlueStacks ou Navigateur",
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                         }
                     }
@@ -2208,7 +2214,7 @@ private fun InstallationAndSettingsTab(
                             Text(
                                 text = "Icône Écran d'Accueil Safari (Plein Écran) & Package IPA Xcode",
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                         }
                     }
@@ -2280,7 +2286,7 @@ private fun InstallationAndSettingsTab(
                                "• Devise de facturation : Dinar Tunisien (TND / millimes)\n" +
                                "• Générateur de rapports : PDF certifié avec signatures numériques et visas",
                         fontSize = 12.sp,
-                        color = SlateMedium,
+                        color = dynamicTextSub,
                         lineHeight = 18.sp
                     )
                 }

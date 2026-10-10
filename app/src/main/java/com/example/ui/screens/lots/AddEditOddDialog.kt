@@ -280,7 +280,7 @@ fun AddEditOddDialog(
                                     text = "${currentDistKm * 2} km A/R - 50 km déduits = $currentNetKm km nets (~$currentDuration)",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = SlateMedium
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -288,13 +288,13 @@ fun AddEditOddDialog(
                             Text(
                                 text = "Indemnité A/R :",
                                 fontSize = 9.sp,
-                                color = SlateMedium
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "%.3f TND".format(currentEstimIndemnite),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = AviationNavy
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -388,7 +388,7 @@ fun AddEditOddDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Régler fin :", fontSize = 10.sp, color = SlateMedium)
+                    Text("Régler fin :", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     listOf(1, 2, 3, 5).forEach { days ->
                         SuggestionChip(
                             onClick = {
@@ -437,7 +437,7 @@ fun AddEditOddDialog(
                             text = "🏨 Délai hébergements calculé : $dureeJours j - 1 = $delaiHebergementAuto nuitée(s)",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = AviationNavy
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         val ruleNote = when {
@@ -474,7 +474,7 @@ fun AddEditOddDialog(
                         Text(
                             "Montant déduit automatiquement du total brut de la mission.",
                             fontSize = 10.sp,
-                            color = SlateMedium
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     singleLine = true,

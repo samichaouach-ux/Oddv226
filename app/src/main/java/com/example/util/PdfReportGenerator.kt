@@ -129,6 +129,20 @@ object PdfReportGenerator {
         val fraisForLot = fraisList.filter { oddNumbersSet.contains(it.oddN) }
         val documentsForLot = documents.filter { oddNumbersSet.contains(it.oddN) }
 
+        val currentDirCode = lot.directionActuelle
+        val currentDirEntity = directions.firstOrNull { it.code.equals(currentDirCode, ignoreCase = true) }
+        val targetDirName = currentDirEntity?.libelle ?: when (currentDirCode) {
+            "DM" -> "Direction de la Maintenance"
+            "DCT" -> "Direction du Contrôle Technique"
+            "DGRT" -> "Direction de Gestion des Ressources Techniques"
+            "DCST" -> "Direction de la Coordination et du Support Technique"
+            "AUDIT" -> "Direction de l'Audit et de la Qualité"
+            "DG" -> "Direction Générale"
+            "DAF" -> "Direction Administrative et Financière"
+            "ARCHIVE" -> "Direction Administrative et Financière"
+            else -> "Direction $currentDirCode"
+        }
+
         val pdfDocument = PdfDocument()
         var pageNumber = 1
         var pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create() // A4 standard (595 x 842)
@@ -375,13 +389,87 @@ object PdfReportGenerator {
         canvas.drawText(totalMntStr, colX_Mnt + colW_Mnt - tmW - 3f, currentY + 12f, paint)
         canvas.drawText(totalMntStr, colX_Tot + colW_Tot - tmW - 3f, currentY + 12f, paint)
 
-        currentY += tableRowH + 18f
+        currentY += tableRowH + 14f
+
+        // =========================================================================
+        // CADRE OBSERVATIONS (PAGE 1 : ENTRE LE TABLEAU DES ODD ET LE BORDEREAU)
+        // =========================================================================
+        val obsBoxY = currentY
+        val bordereauTargetY = 645f
+        val obsBoxH = (bordereauTargetY - obsBoxY - 10f).coerceIn(40f, 75f)
+
+        // Fond et bordure du cadre observations
+        paint.color = Color.parseColor("#F8FAFC")
+        canvas.drawRoundRect(marginX, obsBoxY, marginX + contentWidth, obsBoxY + obsBoxH, 4f, 4f, paint)
+        paint.color = Color.parseColor("#CBD5E1")
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 0.9f
+        canvas.drawRoundRect(marginX, obsBoxY, marginX + contentWidth, obsBoxY + obsBoxH, 4f, 4f, paint)
+        paint.style = Paint.Style.FILL
+
+        // Bandeau / Titre du Cadre Observations
+        paint.color = Color.parseColor("#0F2B48")
+        paint.textSize = 8.5f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        canvas.drawText("OBSERVATIONS :", marginX + 8f, obsBoxY + 13f, paint)
+
+        // Case à cocher non cochée juste avant RAS
+        val cbX = marginX + 85f
+        val cbY = obsBoxY + 6.5f
+        val cbSize = 7.5f
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.parseColor("#475569")
+        paint.strokeWidth = 0.8f
+        canvas.drawRect(cbX, cbY, cbX + cbSize, cbY + cbSize, paint)
+        paint.style = Paint.Style.FILL
+
+        paint.textSize = 7f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        paint.color = Color.parseColor("#334155")
+        canvas.drawText("RAS — Dossier conforme aux exigences réglementaires de contrôle interne et navigabilité.", cbX + cbSize + 4.5f, obsBoxY + 13f, paint)
+
+        // Contenu des observations (détailDivers du lot si renseigné, sinon lignes pour annotations)
+        val obsContent = lot.detailDivers.trim()
+        if (obsContent.isNotBlank()) {
+            paint.textSize = 7.5f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.color = Color.parseColor("#1E293B")
+            var lineY = obsBoxY + 24f
+            val words = obsContent.split(" ")
+            val currentLine = StringBuilder()
+            for (word in words) {
+                if (paint.measureText(currentLine.toString() + " " + word) < contentWidth - 24f) {
+                    if (currentLine.isNotEmpty()) currentLine.append(" ")
+                    currentLine.append(word)
+                } else {
+                    canvas.drawText(currentLine.toString(), marginX + 10f, lineY, paint)
+                    lineY += 10.5f
+                    currentLine.setLength(0)
+                    currentLine.append(word)
+                    if (lineY > obsBoxY + obsBoxH - 6f) break
+                }
+            }
+            if (currentLine.isNotEmpty() && lineY <= obsBoxY + obsBoxH - 5f) {
+                canvas.drawText(currentLine.toString(), marginX + 10f, lineY, paint)
+            }
+        } else {
+            // Lignes de remarques / annotations réglementaires pour écriture manuscrite
+            paint.style = Paint.Style.STROKE
+            paint.color = Color.parseColor("#E2E8F0")
+            paint.strokeWidth = 0.6f
+            canvas.drawLine(marginX + 8f, obsBoxY + 25f, marginX + contentWidth - 8f, obsBoxY + 25f, paint)
+            canvas.drawLine(marginX + 8f, obsBoxY + 36f, marginX + contentWidth - 8f, obsBoxY + 36f, paint)
+            if (obsBoxH >= 48f) {
+                canvas.drawLine(marginX + 8f, obsBoxY + 47f, marginX + contentWidth - 8f, obsBoxY + 47f, paint)
+            }
+            paint.style = Paint.Style.FILL
+        }
 
         // =========================================================================
         // BORDEREAU DE TRANSMISSION HIÉRARCHIQUE & VISAS DES 7 DIRECTIONS
         // (TOUJOURS POSITIONNÉ EN BAS DE LA PAGE 1 ET JUSTE AU-DESSUS DU PIED DE PAGE)
         // =========================================================================
-        currentY = maxOf(currentY, 650f)
+        currentY = maxOf(obsBoxY + obsBoxH + 10f, 645f)
 
         paint.color = Color.parseColor("#0F2B48")
         paint.textSize = 10f
@@ -484,8 +572,8 @@ object PdfReportGenerator {
         pdfDocument.finishPage(page)
 
         // =========================================================================
-        // PAGE 2 (POUR CHAQUE ODD) : ORDRE DE MISSION (SI) & DÉCOMPTE DE LIQUIDATION
-        // REPRODUCTION EXACTE ET FIDÈLE DE LA PAGE 2 JOINTE DU DOCUMENT OFFICIEL
+        // PAGE 2 (POUR CHAQUE ODD) : BORDEREAU GED & ORDRE DE MISSION (SI)
+        // REPRODUCTION EXACTE ET FIDÈLE DU DOCUMENT OFFICIEL TUNISAIR TECHNICS
         // =========================================================================
         oddsForLot.forEachIndexed { oIdx, odd ->
             val tech = techniciens.firstOrNull { it.matricule == odd.matricule }
@@ -516,11 +604,25 @@ object PdfReportGenerator {
             val dateDebutStr = longDateFormat.format(Date(odd.dateDebut)).uppercase()
             val dateFinStr = longDateFormat.format(Date(odd.dateFin)).uppercase()
 
+            val currentDirCode = lot.directionActuelle
+            val currentDirEntity = directions.firstOrNull { it.code.equals(currentDirCode, ignoreCase = true) }
+            val targetDirName = currentDirEntity?.libelle ?: when (currentDirCode) {
+                "DM" -> "Direction de la Maintenance"
+                "DCT" -> "Direction du Contrôle Technique"
+                "DGRT" -> "Direction de Gestion des Ressources Techniques"
+                "DCST" -> "Direction de la Coordination et du Support Technique"
+                "AUDIT" -> "Direction de l'Audit et de la Qualité"
+                "DG" -> "Direction Générale"
+                "DAF" -> "Direction Administrative et Financière"
+                "ARCHIVE" -> "Direction Administrative et Financière"
+                else -> "Direction $currentDirCode"
+            }
+
             pageNumber++
             pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
             page = pdfDocument.startPage(pageInfo)
             canvas = page.canvas
-            currentY = 28f
+            currentY = 24f
 
             // 1. En-tête Tunisair Technics
             drawTunisairTechnicsLogo(canvas, marginX, currentY)
@@ -535,42 +637,38 @@ object PdfReportGenerator {
             paint.textSize = 7.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             paint.color = Color.parseColor("#334155")
-            val p2DirStr = "DIRECTION : DIRECTION DE LA MAINTENANCE"
+            val p2DirStr = "DIRECTION : ${targetDirName.uppercase()}"
             val p2DirW = paint.measureText(p2DirStr)
             canvas.drawText(p2DirStr, pageWidth - marginX - p2DirW, currentY + 23f, paint)
-            val p2DeptStr = "DEPARTEMENT : ENTRETIEN EN LIGNE"
-            val p2DeptW = paint.measureText(p2DeptStr)
-            canvas.drawText(p2DeptStr, pageWidth - marginX - p2DeptW, currentY + 34f, paint)
 
-            // Ligne séparatrice sous l'en-tête
+            // Ligne séparatrice sous l'en-tête (département supprimé)
             paint.color = Color.parseColor("#E2E8F0")
             paint.strokeWidth = 0.8f
-            canvas.drawLine(marginX, currentY + 44f, pageWidth - marginX, currentY + 44f, paint)
+            canvas.drawLine(marginX, currentY + 34f, pageWidth - marginX, currentY + 34f, paint)
 
-            // Faire descendre le corps du texte de la page 2 pour éviter de croiser l'en-tête avec le corps
-            currentY += 60f
+            currentY += 38f
 
-            // Grand Titre : ORDRE DE MISSION (SI)
+            // 2. DOCUMENT ORDRE DE MISSION (SI)
             paint.color = Color.parseColor("#0F172A")
-            paint.textSize = 15f
+            paint.textSize = 13.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             val odmTitle = "ORDRE DE MISSION (SI)"
             val odmW = paint.measureText(odmTitle)
-            canvas.drawText(odmTitle, (pageWidth - odmW) / 2f, currentY + 14f, paint)
+            canvas.drawText(odmTitle, (pageWidth - odmW) / 2f, currentY + 12f, paint)
 
-            paint.textSize = 9.5f
+            paint.textSize = 8.5f
             val oddRefTitle = "N° ${odd.oddN}"
             val oddRefW = paint.measureText(oddRefTitle)
-            canvas.drawText(oddRefTitle, (pageWidth - oddRefW) / 2f, currentY + 28f, paint)
+            canvas.drawText(oddRefTitle, (pageWidth - oddRefW) / 2f, currentY + 23f, paint)
 
-            currentY += 42f
+            currentY += 28f
 
             // Helper encadré
             fun drawBoxField(label: String, value: String, x: Float, y: Float, w: Float, h: Float, labelW: Float) {
                 paint.color = Color.parseColor("#0F172A")
-                paint.textSize = 7.5f
+                paint.textSize = 7.2f
                 paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                canvas.drawText(label, x, y + 13f, paint)
+                canvas.drawText(label, x, y + 11.5f, paint)
 
                 val bx = x + labelW
                 val bw = w - labelW
@@ -580,24 +678,23 @@ object PdfReportGenerator {
                 canvas.drawRect(bx, y, bx + bw, y + h, paint)
                 paint.style = Paint.Style.FILL
 
-                paint.textSize = 7.5f
+                paint.textSize = 7.2f
                 paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
                 paint.color = Color.parseColor("#0F172A")
-                canvas.drawText(value, bx + 6f, y + 13f, paint)
+                canvas.drawText(value, bx + 6f, y + 11.5f, paint)
             }
 
-            // Champs Formulaire Mission (Page 2)
-            val fieldH = 19f
-            val fSep = 3f
+            // Champs Formulaire Mission
+            val fieldH = 15f
+            val fSep = 2f
 
             // Ligne 1 : MR /MME/MLE & MLE
             drawBoxField("MR /MME/MLE", techNom, marginX, currentY, contentWidth - 145f, fieldH, 75f)
             drawBoxField("MLE :", odd.matricule, marginX + contentWidth - 140f, currentY, 140f, fieldH, 35f)
             currentY += fieldH + fSep
 
-            // Ligne 2 : GRADE OU FONCTION & DEPARTEMENT
-            drawBoxField("GRADE OU FONCTION :", "$fonctionStr (Echelle : ${odd.echelle})", marginX, currentY, contentWidth - 165f, fieldH, 115f)
-            drawBoxField("DEPT :", "ENTRETIEN EN LIGNE", marginX + contentWidth - 160f, currentY, 160f, fieldH, 40f)
+            // Ligne 2 : GRADE OU FONCTION (département supprimé du rapport)
+            drawBoxField("GRADE OU FONCTION :", "$fonctionStr (Echelle : ${odd.echelle})", marginX, currentY, contentWidth, fieldH, 125f)
             currentY += fieldH + fSep
 
             // Ligne 3 : EST AUTORISE A SE DEPLACER A & PAR VOIE
@@ -623,11 +720,11 @@ object PdfReportGenerator {
             val avanceTxt = if (odd.avanceSurMission > 0.0) "${"%.3f".format(odd.avanceSurMission)} DT" else "NÉANT"
             drawBoxField("AVANCE SUR FRAIS :", avanceTxt, marginX, currentY, (contentWidth / 2f) - 4f, fieldH, 95f)
             drawBoxField("TAUX JOURNALIER :", "${"%.0f".format(tauxJour)} DT / jour", marginX + (contentWidth / 2f) + 4f, currentY, (contentWidth / 2f) - 4f, fieldH, 95f)
-            currentY += fieldH + 6f
+            currentY += fieldH + 4f
 
             // Visas d'autorisation préalable (3 colonnes)
             val visaW = (contentWidth - 12f) / 3f
-            val visaH = 44f
+            val visaH = 32f
             val visaTitles = listOf(
                 "LE DIRECTEUR DE L'AUDIT",
                 "DIRECTEUR CONCERNÉ (DM)",
@@ -644,27 +741,27 @@ object PdfReportGenerator {
                 paint.style = Paint.Style.FILL
 
                 paint.color = Color.parseColor("#0F172A")
-                paint.textSize = 7f
+                paint.textSize = 6.8f
                 paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                canvas.drawText(vTitle, vx + 6f, currentY + 11f, paint)
+                canvas.drawText(vTitle, vx + 6f, currentY + 10f, paint)
 
-                paint.textSize = 6.5f
+                paint.textSize = 6.2f
                 paint.color = Color.parseColor("#15803D")
-                canvas.drawText("Avis Favorable • Visa Accordé", vx + 6f, currentY + 23f, paint)
+                canvas.drawText("Avis Favorable • Visa Accordé", vx + 6f, currentY + 19f, paint)
 
-                paint.textSize = 6f
+                paint.textSize = 5.8f
                 paint.color = Color.parseColor("#64748B")
                 paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-                canvas.drawText("Approuvé pour exécution", vx + 6f, currentY + 34f, paint)
+                canvas.drawText("Approuvé pour exécution", vx + 6f, currentY + 28f, paint)
             }
 
-            currentY += visaH + 10f
+            currentY += visaH + 6f
 
             // =====================================================================
-            // CASE RÉSERVÉE À LA DIRECTION ADMINISTRATIVE & DÉCOMPTE DE LIQUIDATION (DAF)
+            // 3. CASE RÉSERVÉE À LA DIRECTION QUI DEVRAIT VALIDER CE RAPPORT
             // =====================================================================
             val caseBoxY = currentY
-            val caseBoxH = 265f
+            val caseBoxH = 226f
 
             // Cadre principal
             paint.color = Color.parseColor("#F8FAFC")
@@ -675,27 +772,27 @@ object PdfReportGenerator {
             canvas.drawRoundRect(marginX, caseBoxY, marginX + contentWidth, caseBoxY + caseBoxH, 6f, 6f, paint)
             paint.style = Paint.Style.FILL
 
-            // Bandeau supérieur
+            // Bandeau supérieur avec nom de la direction qui devrait valider ce rapport
             paint.color = Color.parseColor("#0F2B48")
-            canvas.drawRoundRect(marginX, caseBoxY, marginX + contentWidth, caseBoxY + 22f, 6f, 6f, paint)
+            canvas.drawRoundRect(marginX, caseBoxY, marginX + contentWidth, caseBoxY + 18f, 6f, 6f, paint)
             paint.color = Color.WHITE
-            paint.textSize = 8.5f
+            val caseTitle = "CASE RÉSERVÉE À LA ${targetDirName.uppercase()} ($currentDirCode) & DÉCOMPTE DE LIQUIDATION"
+            paint.textSize = if (paint.measureText(caseTitle) > contentWidth - 20f) 6.6f else 7.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            val caseTitle = "CASE RÉSERVÉE À LA DIRECTION ADMINISTRATIVE & DÉCOMPTE DE LIQUIDATION"
-            canvas.drawText(caseTitle, marginX + 10f, caseBoxY + 15f, paint)
+            canvas.drawText(caseTitle, marginX + 10f, caseBoxY + 12.5f, paint)
 
-            var innerY = caseBoxY + 35f
+            var innerY = caseBoxY + 28f
 
             // Ligne Trajet & Kilomètres
             paint.color = Color.parseColor("#0F172A")
-            paint.textSize = 7.5f
+            paint.textSize = 7f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             canvas.drawText("• Trajet homologué : ${odd.siteProvenance} ➔ ${odd.siteIntervention} ➔ ${odd.siteProvenance}", marginX + 12f, innerY, paint)
-            innerY += 13f
+            innerY += 10.5f
 
-            val kmDetail = "Distance A/R : $distAR km  •  Franchise réglementaire déduite : $franchiseAppliquee km  •  Distance nette : $distNette km"
+            val kmDetail = "Distance A/R : $distAR km  •  Franchise déduite : $franchiseAppliquee km  •  Distance nette : $distNette km"
             canvas.drawText(kmDetail, marginX + 22f, innerY, paint)
-            innerY += 15f
+            innerY += 11.5f
 
             // Détails de liquidation chiffrés
             fun drawCalcRow(lbl: String, formula: String, montantTnd: Double) {
@@ -712,7 +809,7 @@ object PdfReportGenerator {
                 val mW = paint.measureText(mStr)
                 canvas.drawText(mStr, marginX + contentWidth - mW - 12f, innerY, paint)
 
-                innerY += 14f
+                innerY += 11f
             }
 
             drawCalcRow("1. Indemnités journalières de séjour :", "$nbJours jours x ${"%.0f".format(tauxJour)} DT", montantSejourCalcule)
@@ -726,16 +823,16 @@ object PdfReportGenerator {
             // Ligne Montant global des frais dus
             paint.color = Color.parseColor("#CBD5E1")
             canvas.drawLine(marginX + 12f, innerY, marginX + contentWidth - 12f, innerY, paint)
-            innerY += 12f
+            innerY += 9f
 
             paint.color = Color.parseColor("#0F172A")
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            paint.textSize = 8f
+            paint.textSize = 7.5f
             canvas.drawText("MONTANT GLOBAL DES FRAIS DUS :", marginX + 12f, innerY, paint)
             val globStr = "${"%.3f".format(odd.totalOdd)} TND"
             val gw = paint.measureText(globStr)
             canvas.drawText(globStr, marginX + contentWidth - gw - 12f, innerY, paint)
-            innerY += 14f
+            innerY += 11.5f
 
             // Avance
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
@@ -744,10 +841,10 @@ object PdfReportGenerator {
             val avStr = "- ${"%.3f".format(odd.avanceSurMission)} TND"
             val aw = paint.measureText(avStr)
             canvas.drawText(avStr, marginX + contentWidth - aw - 12f, innerY, paint)
-            innerY += 18f
+            innerY += 13f
 
             // Encadré Différence nette à verser à l'agent
-            val netBoxH = 26f
+            val netBoxH = 21f
             paint.color = Color.parseColor("#DCFCE7")
             canvas.drawRoundRect(marginX + 12f, innerY, marginX + contentWidth - 12f, innerY + netBoxH, 4f, 4f, paint)
             paint.color = Color.parseColor("#16A34A")
@@ -756,134 +853,268 @@ object PdfReportGenerator {
             canvas.drawRoundRect(marginX + 12f, innerY, marginX + contentWidth - 12f, innerY + netBoxH, 4f, 4f, paint)
             paint.style = Paint.Style.FILL
 
-            paint.textSize = 9f
+            paint.textSize = 8f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             paint.color = Color.parseColor("#15803D")
-            canvas.drawText("DIFFÉRENCE NETTE À VERSER À L'AGENT :", marginX + 22f, innerY + 17f, paint)
+            canvas.drawText("DIFFÉRENCE NETTE À VERSER À L'AGENT :", marginX + 22f, innerY + 14.5f, paint)
             val netStr = "${"%.3f".format(netOdd)} TND"
             val nw = paint.measureText(netStr)
-            canvas.drawText(netStr, marginX + contentWidth - nw - 24f, innerY + 17f, paint)
-            innerY += netBoxH + 12f
+            canvas.drawText(netStr, marginX + contentWidth - nw - 24f, innerY + 14.5f, paint)
+            innerY += netBoxH + 8f
 
             // Arrêté à la somme de en toutes lettres
-            paint.textSize = 7.5f
+            paint.textSize = 6.8f
             paint.color = Color.parseColor("#1E293B")
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             canvas.drawText("Arrêté le présent décompte à la somme nette de :", marginX + 12f, innerY, paint)
-            innerY += 11f
+            innerY += 8.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             paint.color = Color.parseColor("#1E3A8A")
             val wordsStr = convertAmountToFrenchWords(netOdd)
             canvas.drawText(wordsStr, marginX + 22f, innerY, paint)
-            innerY += 16f
+            innerY += 11.5f
 
-            // Modalité de règlement & Cachet DAF
-            paint.textSize = 7f
+            // Modalité de paiement (3 cases à cocher superposées) & Tampon bleu de validation
+            val modY = innerY
+            paint.color = Color.parseColor("#0F172A")
+            paint.textSize = 6.4f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("MODALITÉ   DE   PAIEMENT (réservé pour la DAF) :", marginX + 12f, modY, paint)
+
+            val cbPayX = marginX + 14f
+            val cbPaySize = 6.5f
+
+            // Option 1 : Virement bancaire n°...
+            paint.style = Paint.Style.STROKE
+            paint.color = Color.parseColor("#334155")
+            paint.strokeWidth = 0.8f
+            canvas.drawRect(cbPayX, modY + 3.5f, cbPayX + cbPaySize, modY + 3.5f + cbPaySize, paint)
+            paint.style = Paint.Style.FILL
+            paint.textSize = 6.0f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            paint.color = Color.parseColor("#475569")
-            canvas.drawText("Modalité de règlement : Virement bancaire direct sur compte salaire • Bon DAF N° B-2026-${odd.oddN.takeLast(4)}", marginX + 12f, innerY, paint)
+            paint.color = Color.parseColor("#1E293B")
+            canvas.drawText("Virement bancaire n° ....................................................", cbPayX + cbPaySize + 4.5f, modY + 9.5f, paint)
 
-            // Cachet DAF
-            val stampW = 180f
+            // Option 2 : par chèque n°..... En date du... (Pointillés rallongés pour laisser l'espace au numéro)
+            paint.style = Paint.Style.STROKE
+            paint.color = Color.parseColor("#334155")
+            paint.strokeWidth = 0.8f
+            canvas.drawRect(cbPayX, modY + 14.5f, cbPayX + cbPaySize, modY + 14.5f + cbPaySize, paint)
+            paint.style = Paint.Style.FILL
+            paint.textSize = 6.0f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.color = Color.parseColor("#1E293B")
+            canvas.drawText("Par chèque n° ............................................................................ En date du ....................................", cbPayX + cbPaySize + 4.5f, modY + 20.5f, paint)
+
+            // Option 3 : Au comptant
+            paint.style = Paint.Style.STROKE
+            paint.color = Color.parseColor("#334155")
+            paint.strokeWidth = 0.8f
+            canvas.drawRect(cbPayX, modY + 25.5f, cbPayX + cbPaySize, modY + 25.5f + cbPaySize, paint)
+            paint.style = Paint.Style.FILL
+            paint.textSize = 6.0f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.color = Color.parseColor("#1E293B")
+            canvas.drawText("Au comptant", cbPayX + cbPaySize + 4.5f, modY + 31.5f, paint)
+
+            // Tampon bleu de validation (Positionné à droite de la modalité de paiement)
+            val stampW = 185f
             val stampH = 34f
             val stampX = marginX + contentWidth - stampW - 12f
-            val stampY = innerY - 6f
+            val stampY = modY - 2f
             paint.color = Color.parseColor("#0284C7")
             paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 1f
+            paint.strokeWidth = 1.1f
             canvas.drawRoundRect(stampX, stampY, stampX + stampW, stampY + stampH, 4f, 4f, paint)
             paint.style = Paint.Style.FILL
+
             paint.color = Color.parseColor("#0369A1")
-            paint.textSize = 6.5f
+            val stampTitle = targetDirName.uppercase()
+            paint.textSize = when {
+                paint.measureText(stampTitle) > stampW - 14f -> 5.5f
+                paint.measureText(stampTitle) > stampW - 24f -> 5.9f
+                else -> 6.4f
+            }
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            canvas.drawText("DIRECTION FINANCIÈRE & COMPTABLE", stampX + 10f, stampY + 14f, paint)
-            paint.textSize = 6f
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            canvas.drawText("Vu & Bon à Payer • Virement Ordonnancé", stampX + 10f, stampY + 25f, paint)
+            val stw = paint.measureText(stampTitle)
+            val stX = stampX + (stampW - stw).coerceAtLeast(0f) / 2f
+            canvas.drawText(stampTitle, stX, stampY + 13f, paint)
+
+            paint.textSize = 7f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            val apprStr = "VU & APPROUVÉ"
+            val apprW = paint.measureText(apprStr)
+            canvas.drawText(apprStr, stampX + (stampW - apprW) / 2f, stampY + 26f, paint)
 
             currentY = caseBoxY + caseBoxH + 8f
 
-            // Mentions exemplaires réglementaires
-            paint.color = Color.parseColor("#64748B")
-            paint.textSize = 6f
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            canvas.drawText("• ODD émis en 5 exemplaires : 1. Original agent • 2. Agence billet • 3. Direction Financière (Paiement) • 4. Direction Administrative • 5. Archives", marginX, currentY + 8f, paint)
+            // =========================================================================
+            // 4. JUSTE AU-DESSOUS DE L'ORDRE DE MISSION : FRAIS ET PIÈCES JOINTES
+            // =========================================================================
+            val oddDocs = documents.filter { it.oddN == odd.oddN }
 
-            drawPageFooter(canvas, pageNumber)
-            pdfDocument.finishPage(page)
+            val fraisTableH = 14f + (if (oddFrais.isEmpty()) 13f else oddFrais.size * 11.5f + 13f)
+            val docsTableH = 14f + (if (oddDocs.isEmpty()) 13f else oddDocs.size * 11.5f)
+            val totalSectionsH = fraisTableH + docsTableH + 28f
 
-            // BORDEREAU DES PIÈCES JUSTIFICATIVES NUMÉRISÉES GED SPÉCIFIQUE À CET ORDRE DE MISSION
-            val docsForThisOdd = documents.filter { it.oddN == odd.oddN }
-            if (docsForThisOdd.isNotEmpty()) {
+            // Vérification de la place restante sur la page
+            if (currentY + totalSectionsH > 795f) {
+                drawPageFooter(canvas, pageNumber)
+                pdfDocument.finishPage(page)
+
                 pageNumber++
                 pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
                 page = pdfDocument.startPage(pageInfo)
                 canvas = page.canvas
-                currentY = 36f
+                currentY = 24f
 
                 drawTunisairTechnicsLogo(canvas, marginX, currentY)
-                currentY += 44f
+                currentY += 46f
+            }
 
-                paint.color = Color.parseColor("#0F2B48")
-                paint.textSize = 11.5f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                canvas.drawText("BORDEREAU DES PIÈCES JUSTIFICATIVES GED — ORDRE DE MISSION N° ${odd.oddN}", marginX, currentY, paint)
+            // A. TABLEAU DES FRAIS DE MISSION CORRESPONDANT À CET ODD
+            paint.color = Color.parseColor("#0F2B48")
+            paint.textSize = 8f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("FRAIS & DÉPENSES ENGAGÉES — ORDRE DE MISSION N° ${odd.oddN}", marginX, currentY + 8f, paint)
 
-                currentY += 14f
-                paint.textSize = 8f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.textSize = 6.5f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.color = Color.parseColor("#64748B")
+            val fraisSubStr = "${oddFrais.size} poste(s) de frais • Total : ${"%.3f".format(oddFrais.sumOf { it.montant })} TND"
+            val fsw = paint.measureText(fraisSubStr)
+            canvas.drawText(fraisSubStr, pageWidth - marginX - fsw, currentY + 8f, paint)
+            currentY += 12f
+
+            val fHdrH = 13f
+            val fRowH = 11.5f
+            paint.color = Color.parseColor("#E2E8F0")
+            canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + fHdrH, paint)
+
+            paint.color = Color.parseColor("#0F172A")
+            paint.textSize = 6.2f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("CATÉGORIE", marginX + 4f, currentY + 9f, paint)
+            canvas.drawText("NATURE / DÉSIGNATION", marginX + 90f, currentY + 9f, paint)
+            canvas.drawText("QTÉ / UNITÉ", marginX + 240f, currentY + 9f, paint)
+            canvas.drawText("PRIX UNIT.", marginX + 330f, currentY + 9f, paint)
+            canvas.drawText("MONTANT TND", marginX + 410f, currentY + 9f, paint)
+            canvas.drawText("PRISE EN CHARGE", marginX + 472f, currentY + 9f, paint)
+            currentY += fHdrH
+
+            if (oddFrais.isEmpty()) {
                 paint.color = Color.parseColor("#64748B")
-                canvas.drawText("Technicien : $techNom (${odd.matricule}) • Trajet : ${odd.siteProvenance} -> ${odd.siteIntervention} • ${docsForThisOdd.size} pièce(s) GED rattachée(s)", marginX, currentY, paint)
-
-                currentY += 16f
-
-                val docHeaderH = 18f
-                val docRowH = 16f
-                paint.color = Color.parseColor("#CBD5E1")
-                canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + docHeaderH, paint)
-
-                paint.color = Color.parseColor("#0F172A")
-                paint.textSize = 7.5f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                canvas.drawText("RÉF PIÈCE GED", marginX + 4f, currentY + 12f, paint)
-                canvas.drawText("NATURE DOCUMENT", marginX + 110f, currentY + 12f, paint)
-                canvas.drawText("OBJET / RÉFÉRENCE", marginX + 240f, currentY + 12f, paint)
-                canvas.drawText("DATE DÉPÔT", marginX + 415f, currentY + 12f, paint)
-                canvas.drawText("CERTIFICATION GED", marginX + 475f, currentY + 12f, paint)
-
-                currentY += docHeaderH
-
-                docsForThisOdd.forEachIndexed { dIdx, doc ->
-                    if (dIdx % 2 == 1) {
+                paint.textSize = 6.2f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+                canvas.drawText("Aucun frais annexe enregistré pour cet ordre de mission (indemnités barème uniquement).", marginX + 8f, currentY + 9f, paint)
+                currentY += 13f
+            } else {
+                oddFrais.forEachIndexed { fIdx, f ->
+                    if (fIdx % 2 == 1) {
                         paint.color = Color.parseColor("#F8FAFC")
-                        canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + docRowH, paint)
+                        canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + fRowH, paint)
                     }
-
-                    paint.textSize = 7f
+                    paint.textSize = 6.2f
                     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
                     paint.color = Color.parseColor("#1E293B")
+                    canvas.drawText(f.categorie.take(16), marginX + 4f, currentY + 8.5f, paint)
+                    canvas.drawText(f.sousCategorie.take(30), marginX + 90f, currentY + 8.5f, paint)
+                    canvas.drawText("${f.quantite} ${f.unite}".take(15), marginX + 240f, currentY + 8.5f, paint)
+                    canvas.drawText("${"%.3f".format(f.pUnit)} DT", marginX + 330f, currentY + 8.5f, paint)
 
-                    canvas.drawText(doc.idDoc.take(16), marginX + 4f, currentY + 11f, paint)
-                    canvas.drawText(doc.typeDocument.take(20), marginX + 110f, currentY + 11f, paint)
-                    canvas.drawText(doc.objet.take(28), marginX + 240f, currentY + 11f, paint)
-                    canvas.drawText(shortDate.format(Date(doc.dateEnvoie)), marginX + 415f, currentY + 11f, paint)
+                    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                    canvas.drawText("${"%.3f".format(f.montant)} TND", marginX + 410f, currentY + 8.5f, paint)
+
+                    paint.color = if (f.estComptabilise) Color.parseColor("#15803D") else Color.parseColor("#DC2626")
+                    canvas.drawText(if (f.estComptabilise) "Comptabilisé" else "Rejeté", marginX + 472f, currentY + 8.5f, paint)
+
+                    paint.color = Color.parseColor("#E2E8F0")
+                    paint.strokeWidth = 0.5f
+                    paint.style = Paint.Style.STROKE
+                    canvas.drawLine(marginX, currentY + fRowH, marginX + contentWidth, currentY + fRowH, paint)
+                    paint.style = Paint.Style.FILL
+
+                    currentY += fRowH
+                }
+
+                // Ligne total frais
+                paint.color = Color.parseColor("#F1F5F9")
+                canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + 12f, paint)
+                paint.color = Color.parseColor("#0F172A")
+                paint.textSize = 6.2f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                canvas.drawText("TOTAL FRAIS ANNEXES ODD :", marginX + 240f, currentY + 8.5f, paint)
+                canvas.drawText("${"%.3f".format(oddFrais.sumOf { it.aComptabiliser })} TND", marginX + 410f, currentY + 8.5f, paint)
+                currentY += 14f
+            }
+
+            currentY += 6f
+
+            // B. TABLEAU DES PIÈCES JOINTES & JUSTIFICATIFS GED NUMÉRISÉS
+            paint.color = Color.parseColor("#0F2B48")
+            paint.textSize = 8f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("PIÈCES JOINTES & JUSTIFICATIFS GED NUMÉRISÉS — ORDRE DE MISSION N° ${odd.oddN}", marginX, currentY + 8f, paint)
+
+            paint.textSize = 6.5f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.color = Color.parseColor("#64748B")
+            val docSubStr = "${oddDocs.size} pièce(s) GED rattachée(s)"
+            val dsw = paint.measureText(docSubStr)
+            canvas.drawText(docSubStr, pageWidth - marginX - dsw, currentY + 8f, paint)
+            currentY += 12f
+
+            val dHdrH = 13f
+            val dRowH = 11.5f
+            paint.color = Color.parseColor("#E2E8F0")
+            canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + dHdrH, paint)
+
+            paint.color = Color.parseColor("#0F172A")
+            paint.textSize = 6.2f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("RÉF PIÈCE GED", marginX + 4f, currentY + 9f, paint)
+            canvas.drawText("NATURE DOCUMENT", marginX + 105f, currentY + 9f, paint)
+            canvas.drawText("OBJET / RÉFÉRENCE", marginX + 230f, currentY + 9f, paint)
+            canvas.drawText("DATE DÉPÔT", marginX + 410f, currentY + 9f, paint)
+            canvas.drawText("CERTIFICATION GED", marginX + 472f, currentY + 9f, paint)
+            currentY += dHdrH
+
+            if (oddDocs.isEmpty()) {
+                paint.color = Color.parseColor("#64748B")
+                paint.textSize = 6.2f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+                canvas.drawText("Aucune pièce justificative GED rattachée à cet ordre de mission.", marginX + 8f, currentY + 9f, paint)
+                currentY += 13f
+            } else {
+                oddDocs.forEachIndexed { dIdx, doc ->
+                    if (dIdx % 2 == 1) {
+                        paint.color = Color.parseColor("#F8FAFC")
+                        canvas.drawRect(marginX, currentY, marginX + contentWidth, currentY + dRowH, paint)
+                    }
+                    paint.textSize = 6.2f
+                    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                    paint.color = Color.parseColor("#1E293B")
+                    canvas.drawText(doc.idDoc.take(16), marginX + 4f, currentY + 8.5f, paint)
+                    canvas.drawText(doc.typeDocument.take(20), marginX + 105f, currentY + 8.5f, paint)
+                    canvas.drawText(doc.objet.take(30), marginX + 230f, currentY + 8.5f, paint)
+                    canvas.drawText(shortDate.format(Date(doc.dateEnvoie)), marginX + 410f, currentY + 8.5f, paint)
 
                     paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
                     paint.color = Color.parseColor("#15803D")
-                    canvas.drawText("Certifié Conforme", marginX + 475f, currentY + 11f, paint)
+                    canvas.drawText("Certifié Conforme", marginX + 472f, currentY + 8.5f, paint)
 
                     paint.color = Color.parseColor("#E2E8F0")
-                    paint.strokeWidth = 0.8f
+                    paint.strokeWidth = 0.5f
                     paint.style = Paint.Style.STROKE
-                    canvas.drawLine(marginX, currentY + docRowH, marginX + contentWidth, currentY + docRowH, paint)
+                    canvas.drawLine(marginX, currentY + dRowH, marginX + contentWidth, currentY + dRowH, paint)
                     paint.style = Paint.Style.FILL
 
-                    currentY += docRowH
+                    currentY += dRowH
                 }
-
-                drawPageFooter(canvas, pageNumber)
-                pdfDocument.finishPage(page)
             }
+
+            drawPageFooter(canvas, pageNumber)
+            pdfDocument.finishPage(page)
         }
 
         // =========================================================================
@@ -906,13 +1137,21 @@ object PdfReportGenerator {
         val editDateW = paint.measureText(editDateStr)
         canvas.drawText(editDateStr, pageWidth - marginX - editDateW, currentY + 12f, paint)
 
+        // Nom de la direction concernée sous Édité le
+        paint.color = Color.parseColor("#0F2B48")
+        paint.textSize = 7.5f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        val dirConcerneeStr = "Direction concernée : $targetDirName ($currentDirCode)"
+        val dirW = paint.measureText(dirConcerneeStr)
+        canvas.drawText(dirConcerneeStr, pageWidth - marginX - dirW, currentY + 23.5f, paint)
+
         // Badge Audit ERP placé à droite pour ne JAMAIS croiser le logo
         val erpBadge = "CONTRÔLE DE GESTION & AUDIT ANALYTIQUE ERP"
         paint.color = Color.parseColor("#0284C7")
-        paint.textSize = 7.5f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.textSize = 6.8f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         val erpBadgeW = paint.measureText(erpBadge)
-        canvas.drawText(erpBadge, pageWidth - marginX - erpBadgeW, currentY + 25f, paint)
+        canvas.drawText(erpBadge, pageWidth - marginX - erpBadgeW, currentY + 34f, paint)
 
         // Ligne de séparation sous l'en-tête
         paint.color = Color.parseColor("#E2E8F0")
@@ -1228,25 +1467,33 @@ object PdfReportGenerator {
         canvas.drawText("Toutes les pièces justificatives numérisées ont été vérifiées et certifiées", marginX + 8f, currentY + 26f, paint)
         canvas.drawText("conformes aux exigences réglementaires et de navigabilité aérienne.", marginX + 8f, currentY + 38f, paint)
 
-        // Boîte droite : Visa Contrôle de Gestion & DAF
+        // Boîte droite : Visa de la direction concernée & DAF (Tampon bleu de validation)
         val abx2 = marginX + auditBoxW + 8f
         paint.color = Color.parseColor("#EFF6FF")
         canvas.drawRoundRect(abx2, currentY, abx2 + auditBoxW, currentY + auditBoxH, 4f, 4f, paint)
-        paint.color = Color.parseColor("#93C5FD")
+        paint.color = Color.parseColor("#0284C7")
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 1f
+        paint.strokeWidth = 1.1f
         canvas.drawRoundRect(abx2, currentY, abx2 + auditBoxW, currentY + auditBoxH, 4f, 4f, paint)
         paint.style = Paint.Style.FILL
 
-        paint.color = Color.parseColor("#1E3A8A")
-        paint.textSize = 7.5f
+        paint.color = Color.parseColor("#0369A1")
+        val visaDirTitle = "VISA DE LA ${targetDirName.uppercase()} ($currentDirCode)"
+        paint.textSize = if (paint.measureText(visaDirTitle) > auditBoxW - 14f) 6.0f else 6.8f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("VISA D'AUDIT ANALYTIQUE & CONTRÔLE DE GESTION DAF", abx2 + 8f, currentY + 14f, paint)
-        paint.textSize = 6.5f
+        canvas.drawText(visaDirTitle, abx2 + 8f, currentY + 13f, paint)
+
+        paint.textSize = 6.2f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         paint.color = Color.parseColor("#1E293B")
-        canvas.drawText("Règles logistiques zODD V.2-26 appliquées avec succès. Liquidation", abx2 + 8f, currentY + 26f, paint)
-        canvas.drawText("budgétaire ordonnancée pour transmission hiérarchique et virement bancaire.", abx2 + 8f, currentY + 38f, paint)
+        canvas.drawText("Dossier vérifié & certifié conforme pour liquidation et transmission.", abx2 + 8f, currentY + 25f, paint)
+
+        paint.textSize = 6.8f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.color = Color.parseColor("#0284C7")
+        val apprTbdStr = "VU & APPROUVÉ"
+        val apprTbdW = paint.measureText(apprTbdStr)
+        canvas.drawText(apprTbdStr, abx2 + auditBoxW - apprTbdW - 10f, currentY + 39f, paint)
 
         drawPageFooter(canvas, pageNumber)
         pdfDocument.finishPage(page)

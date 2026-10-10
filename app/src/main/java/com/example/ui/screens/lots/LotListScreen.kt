@@ -83,6 +83,11 @@ fun LotListScreen(
         }
     }
 
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val dynamicTextNavy = if (isDark) Color(0xFF93C5FD) else AviationNavy
+    val dynamicTextSub = if (isDark) Color(0xFFCBD5E1) else SlateMedium
+    val dynamicTextMuted = if (isDark) Color(0xFF94A3B8) else SlateLight
+
     val filteredLots = baseLots.filter { lot ->
         val matchesQuery = lot.lotN.contains(searchQuery, ignoreCase = true) ||
                 lot.libelle.contains(searchQuery, ignoreCase = true)
@@ -275,7 +280,7 @@ fun LotListScreen(
                                 Icon(
                                     imageVector = Icons.Default.FolderOpen,
                                     contentDescription = null,
-                                    tint = SlateLight,
+                                    tint = dynamicTextMuted,
                                     modifier = Modifier.size(54.dp)
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -287,7 +292,7 @@ fun LotListScreen(
                                 Text(
                                     text = "Cliquez sur '+ Nouveau Lot' pour ouvrir une session de mission.",
                                     fontSize = 12.sp,
-                                    color = SlateLight
+                                    color = dynamicTextMuted
                                 )
                             }
                         }
@@ -365,7 +370,7 @@ fun LotListScreen(
                                             text = if (activeSelectedLot.figerLot) "Total : %.3f TND • Dir : ${activeSelectedLot.directionActuelle}".format(activeSelectedLot.totalCoutOdd)
                                             else "Total : %.3f TND (En édition)".format(activeSelectedLot.totalCoutOdd),
                                             fontSize = 11.sp,
-                                            color = SlateMedium
+                                            color = dynamicTextSub
                                         )
                                     }
                                     Button(
@@ -489,7 +494,7 @@ fun LotListScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Text("💰 ${oddFrais.size} Dépenses", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AviationNavy)
+                                        Text("💰 ${oddFrais.size} Dépenses", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = dynamicTextNavy)
                                         Text("📎 ${oddDocs.size} Pièces", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AmberGold)
                                     }
 
@@ -503,13 +508,13 @@ fun LotListScreen(
 
                                     Text("Dépenses de cet ODD :", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                                     if (oddFrais.isEmpty()) {
-                                        Text("Aucun frais enregistré.", fontSize = 11.sp, color = SlateLight)
+                                        Text("Aucun frais enregistré.", fontSize = 11.sp, color = dynamicTextMuted)
                                     } else {
                                         oddFrais.forEach { f ->
                                             Text(
                                                 text = "• ${f.categorie} (${f.sousCategorie}) : ${f.quantite} ${f.unite} × %.3f = %.3f TND".format(f.pUnit, f.aComptabiliser),
                                                 fontSize = 11.sp,
-                                                color = SlateMedium
+                                                color = dynamicTextSub
                                             )
                                         }
                                     }
@@ -518,13 +523,13 @@ fun LotListScreen(
 
                                     Text("Pièces de rattachement :", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = AmberGold)
                                     if (oddDocs.isEmpty()) {
-                                        Text("Aucun justificatif rattaché.", fontSize = 11.sp, color = SlateLight)
+                                        Text("Aucun justificatif rattaché.", fontSize = 11.sp, color = dynamicTextMuted)
                                     } else {
                                         oddDocs.forEach { d ->
                                             Text(
                                                 text = "• ${d.typeDocument} : ${d.objet}",
                                                 fontSize = 11.sp,
-                                                color = SlateMedium
+                                                color = dynamicTextSub
                                             )
                                         }
                                     }
@@ -738,7 +743,7 @@ private fun LotCardItem(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     if (odds.isEmpty()) {
-                        Text("Aucun ODD rattaché à ce lot.", fontSize = 11.sp, color = SlateLight)
+                        Text("Aucun ODD rattaché à ce lot.", fontSize = 11.sp, color = dynamicTextMuted)
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             odds.forEach { odd ->
@@ -795,7 +800,7 @@ private fun LotCardItem(
                                         Text(
                                             text = "Période : Du ${dateFormat.format(Date(odd.dateDebut))} au ${dateFormat.format(Date(odd.dateFin))}",
                                             fontSize = 10.sp,
-                                            color = SlateMedium
+                                            color = dynamicTextSub
                                         )
 
                                         // FRAIS DE CET ODD
@@ -815,14 +820,14 @@ private fun LotCardItem(
                                                     Text(
                                                         text = "• ${f.categorie} (${f.sousCategorie}) : ${f.quantite} ${f.unite} × %.3f".format(f.pUnit),
                                                         fontSize = 10.sp,
-                                                        color = if (f.estComptabilise) MaterialTheme.colorScheme.onSurface else SlateLight,
+                                                        color = if (f.estComptabilise) MaterialTheme.colorScheme.onSurface else dynamicTextMuted,
                                                         modifier = Modifier.weight(1f)
                                                     )
                                                     Text(
                                                         text = "%.3f TND %s".format(f.montant, if (f.estComptabilise) "✓" else "(non comptab.)"),
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else SlateLight
+                                                        color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else dynamicTextMuted
                                                     )
                                                 }
                                             }
@@ -841,7 +846,7 @@ private fun LotCardItem(
                                                 Text(
                                                     text = "• ${d.typeDocument} : ${d.objet} (${dateFormat.format(Date(d.dateEnvoie))})",
                                                     fontSize = 10.sp,
-                                                    color = SlateMedium
+                                                    color = dynamicTextSub
                                                 )
                                             }
                                         }
@@ -1038,7 +1043,7 @@ fun LotReadOnlyDetailsDialog(
                         0 -> {
                             if (odds.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                    Text("Aucun ODD rattaché à ce lot.", fontSize = 12.sp, color = SlateLight)
+                                    Text("Aucun ODD rattaché à ce lot.", fontSize = 12.sp, color = dynamicTextMuted)
                                 }
                             } else {
                                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1096,7 +1101,7 @@ fun LotReadOnlyDetailsDialog(
                                                 Text(
                                                     text = "Période : Du ${dateFormat.format(Date(odd.dateDebut))} au ${dateFormat.format(Date(odd.dateFin))}",
                                                     fontSize = 10.sp,
-                                                    color = SlateMedium
+                                                    color = dynamicTextSub
                                                 )
                                                 if (oddFrais.isNotEmpty() || oddDocs.isNotEmpty()) {
                                                     Spacer(modifier = Modifier.height(4.dp))
@@ -1118,7 +1123,7 @@ fun LotReadOnlyDetailsDialog(
                         1 -> {
                             if (fraisList.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                    Text("Aucun frais enregistré pour ce lot.", fontSize = 12.sp, color = SlateLight)
+                                    Text("Aucun frais enregistré pour ce lot.", fontSize = 12.sp, color = dynamicTextMuted)
                                 }
                             } else {
                                 LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1169,7 +1174,7 @@ fun LotReadOnlyDetailsDialog(
                                                     text = "%.3f TND %s".format(f.montant, if (f.estComptabilise) "✓" else "(non c.)"),
                                                     fontSize = 11.5.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else SlateLight
+                                                    color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else dynamicTextMuted
                                                 )
                                             }
                                         }
@@ -1180,7 +1185,7 @@ fun LotReadOnlyDetailsDialog(
                         2 -> {
                             if (documents.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                    Text("Aucune pièce justificative rattachée.", fontSize = 12.sp, color = SlateLight)
+                                    Text("Aucune pièce justificative rattachée.", fontSize = 12.sp, color = dynamicTextMuted)
                                 }
                             } else {
                                 LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1201,13 +1206,13 @@ fun LotReadOnlyDetailsDialog(
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                                         Text(d.typeDocument, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = EmeraldGreen)
                                                         Spacer(modifier = Modifier.width(6.dp))
-                                                        Text("• ODD ${d.oddN}", fontSize = 10.sp, color = SlateMedium)
+                                                        Text("• ODD ${d.oddN}", fontSize = 10.sp, color = dynamicTextSub)
                                                     }
                                                     Text(d.objet, fontSize = 10.5.sp)
                                                     Text(
                                                         "Reçu le : ${dateFormat.format(Date(d.dateEnvoie))}",
                                                         fontSize = 9.5.sp,
-                                                        color = SlateMedium
+                                                        color = dynamicTextSub
                                                     )
                                                 }
                                             }

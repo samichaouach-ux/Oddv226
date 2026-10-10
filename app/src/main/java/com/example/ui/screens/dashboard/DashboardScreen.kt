@@ -41,6 +41,24 @@ private data class TechWorkloadItem(
     val totalJours: Int
 )
 
+private data class LotFraisBreakdown(
+    val lot: LotEntity,
+    val oddsCount: Int,
+    val heberg: Double,
+    val transp: Double,
+    val divers: Double,
+    val total: Double
+)
+
+private data class SiteFraisBreakdown(
+    val site: String,
+    val oddsCount: Int,
+    val heberg: Double,
+    val transp: Double,
+    val divers: Double,
+    val total: Double
+)
+
 @Composable
 fun DashboardScreen(
     lots: List<LotEntity>,
@@ -54,36 +72,50 @@ fun DashboardScreen(
     val dynamicTitleColor = if (isDark) Color(0xFFF1F5F9) else AviationNavy
     val dynamicSiteTextColor = if (isDark) Color(0xFF93C5FD) else AviationNavy
     val dynamicSiteBgColor = if (isDark) Color(0xFF1E293B) else AviationBlue.copy(alpha = 0.12f)
-    val dynamicSubtextColor = if (isDark) Color(0xFF94A3B8) else SlateMedium
+    val dynamicSubtextColor = if (isDark) Color(0xFFCBD5E1) else SlateMedium
 
-    val totalCoutGlobal = lots.sumOf { it.totalCoutOdd }
+    // Pre-indexed lookups for O(1) retrieval
+    val oddsByLotN = remember(odds) { odds.groupBy { it.lotN } }
+    val fraisByOddN = remember(fraisList) { fraisList.groupBy { it.oddN } }
+    val oddsByProvenance = remember(odds) { odds.groupBy { it.siteProvenance.trim().lowercase() } }
+    val oddsByMatricule = remember(odds) { odds.groupBy { it.matricule } }
+
+    val totalCoutGlobal = remember(lots) { lots.sumOf { it.totalCoutOdd } }
     val totalMissionsGlobal = odds.size
-    val totalHebergement = fraisList.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
-    val totalTransport = fraisList.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
-    val totalDivers = fraisList.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
+    val totalHebergement = remember(fraisList) { fraisList.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser } }
+    val totalTransport = remember(fraisList) { fraisList.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser } }
+    val totalDivers = remember(fraisList) { fraisList.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser } }
 
-    // Métriques spécifiques demandées pour le Badge Total Mission et Budget Engagé
-    val budgetEngageLotsFiges = lots.filter { it.figerLot }.sumOf { it.totalCoutOdd }
-    val lotsFigesSet = lots.filter { it.figerLot }.map { it.lotN }.toSet()
-    val oddsLotsFigesCount = odds.count { it.lotN in lotsFigesSet }
-    val totalJoursTerrain = odds.sumOf { com.example.util.SiteDistances.getMissionDurationDays(it.dateDebut, it.dateFin) }
-    val nbTechEngages = odds.map { it.matricule }.filter { it.isNotBlank() }.distinct().size
+    // Métriques spécifiques pour le Badge Total Mission et Budget Engagé
+    val (budgetEngageLotsFiges, oddsLotsFigesCount, lotsFigesSet) = remember(lots, odds) {
+        val figesLots = lots.filter { it.figerLot }
+        val figesLotNSet = figesLots.map { it.lotN }.toSet()
+        val budget = figesLots.sumOf { it.totalCoutOdd }
+        val count = odds.count { it.lotN in figesLotNSet }
+        Triple(budget, count, figesLotNSet)
+    }
+    val totalJoursTerrain = remember(odds) { odds.sumOf { com.example.util.SiteDistances.getMissionDurationDays(it.dateDebut, it.dateFin) } }
+    val nbTechEngages = remember(odds) { odds.map { it.matricule }.filter { it.isNotBlank() }.distinct().size }
     val nbHeuresTravaillees = totalJoursTerrain * 8
     val coutHoraireBudgetEngage = if (nbHeuresTravaillees > 0) budgetEngageLotsFiges / nbHeuresTravaillees else 0.0
 
     // Grouping by Site (Provenance & Intervention)
-    val sites = listOf("Tunis", "Monastir", "Sfax", "Djerba", "Tozeur")
-    val coutParSite = sites.associateWith { site ->
-        odds.filter { it.siteIntervention.equals(site, true) || it.siteProvenance.equals(site, true) }
-            .sumOf { it.totalOdd }
+    val sites = remember { listOf("Tunis", "Monastir", "Sfax", "Djerba", "Tozeur") }
+    val coutParSite = remember(sites, odds) {
+        sites.associateWith { site ->
+            odds.filter { it.siteIntervention.equals(site, true) || it.siteProvenance.equals(site, true) }
+                .sumOf { it.totalOdd }
+        }
     }
-    val maxSiteCost = (coutParSite.values.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
+    val maxSiteCost = remember(coutParSite) { (coutParSite.values.maxOrNull() ?: 1.0).coerceAtLeast(1.0) }
 
     // Directions Reactivity average (in days)
-    val directions = listOf("DM", "DCT", "DGRT", "DCST", "AUDIT", "DG", "DAF")
-    val reactiviteParDir = directions.associateWith { dir ->
-        val dirVals = validations.filter { it.direction == dir && it.reactiviteJours > 0 }
-        if (dirVals.isNotEmpty()) dirVals.map { it.reactiviteJours }.average() else 1.2
+    val directions = remember { listOf("DM", "DCT", "DGRT", "DCST", "AUDIT", "DG", "DAF") }
+    val reactiviteParDir = remember(directions, validations) {
+        directions.associateWith { dir ->
+            val dirVals = validations.filter { it.direction == dir && it.reactiviteJours > 0 }
+            if (dirVals.isNotEmpty()) dirVals.map { it.reactiviteJours }.average() else 1.2
+        }
     }
 
     // Workload sorting state
@@ -147,7 +179,7 @@ fun DashboardScreen(
                                     .background(AviationBlue.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = AviationBlue, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = if (isDark) Color(0xFF60A5FA) else AviationBlue, modifier = Modifier.size(16.dp))
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -159,7 +191,7 @@ fun DashboardScreen(
                                 softWrap = false,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = AviationBlue
+                                color = if (isDark) Color(0xFF93C5FD) else AviationBlue
                             )
                         }
                         Text(
@@ -185,7 +217,7 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text("⏱️ Coût Horaire :", fontSize = 9.sp, color = dynamicSubtextColor)
-                                    Text("%.3f TND/h".format(coutHoraireBudgetEngage), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AviationNavy, maxLines = 1)
+                                    Text("%.3f TND/h".format(coutHoraireBudgetEngage), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicSiteTextColor, maxLines = 1)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -208,7 +240,7 @@ fun DashboardScreen(
                                 ) {
                                     Text("🏷️ Moy. par ODD :", fontSize = 9.sp, color = dynamicSubtextColor)
                                     val avgOdd = if (oddsLotsFigesCount > 0) budgetEngageLotsFiges / oddsLotsFigesCount else 0.0
-                                    Text("%.3f TND".format(avgOdd), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = AviationBlue, maxLines = 1)
+                                    Text("%.3f TND".format(avgOdd), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = dynamicSiteTextColor, maxLines = 1)
                                 }
                             }
                         }
@@ -356,7 +388,7 @@ fun DashboardScreen(
                         text = "Synthèse Globale de l'ensemble des ODD (Total : %.3f TND)".format(sumGlobalFrais),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = SlateMedium
+                        color = dynamicSubtextColor
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     FraisSplitBar(heberg = totalHebergement, transp = totalTransport, divers = totalDivers)
@@ -393,7 +425,7 @@ fun DashboardScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         oddsToDisplay.forEach { odd ->
-                            val oddFrais = fraisList.filter { it.oddN == odd.oddN }
+                            val oddFrais = fraisByOddN[odd.oddN] ?: emptyList()
                             val h = oddFrais.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
                             val t = oddFrais.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
                             val d = oddFrais.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
@@ -542,28 +574,26 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    val sumGlobalLotsFrais = lots.sumOf { lot ->
-                        val lotOdds = odds.filter { it.lotN == lot.lotN }
-                        fraisList.filter { f -> lotOdds.any { it.oddN == f.oddN } }.sumOf { it.aComptabiliser }
+                    val lotBreakdowns = remember(lots, oddsByLotN, fraisByOddN) {
+                        lots.map { lot ->
+                            val lotOdds = oddsByLotN[lot.lotN] ?: emptyList()
+                            val lotFrais = lotOdds.flatMap { fraisByOddN[it.oddN] ?: emptyList() }
+                            val h = lotFrais.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
+                            val t = lotFrais.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
+                            val d = lotFrais.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
+                            LotFraisBreakdown(lot, lotOdds.size, h, t, d, h + t + d)
+                        }
                     }
-                    val globalLotH = lots.sumOf { lot ->
-                        val lotOdds = odds.filter { it.lotN == lot.lotN }
-                        fraisList.filter { f -> lotOdds.any { it.oddN == f.oddN } && f.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
-                    }
-                    val globalLotT = lots.sumOf { lot ->
-                        val lotOdds = odds.filter { it.lotN == lot.lotN }
-                        fraisList.filter { f -> lotOdds.any { it.oddN == f.oddN } && f.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
-                    }
-                    val globalLotD = lots.sumOf { lot ->
-                        val lotOdds = odds.filter { it.lotN == lot.lotN }
-                        fraisList.filter { f -> lotOdds.any { it.oddN == f.oddN } && f.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
-                    }
+                    val sumGlobalLotsFrais = remember(lotBreakdowns) { lotBreakdowns.sumOf { it.total } }
+                    val globalLotH = remember(lotBreakdowns) { lotBreakdowns.sumOf { it.heberg } }
+                    val globalLotT = remember(lotBreakdowns) { lotBreakdowns.sumOf { it.transp } }
+                    val globalLotD = remember(lotBreakdowns) { lotBreakdowns.sumOf { it.divers } }
 
                     Text(
                         text = "Synthèse Globale par Lot (Total : %.3f TND)".format(sumGlobalLotsFrais),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = SlateMedium
+                        color = dynamicSubtextColor
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     FraisSplitBar(heberg = globalLotH, transp = globalLotT, divers = globalLotD)
@@ -576,16 +606,15 @@ fun DashboardScreen(
                     )
 
                     if (lots.isEmpty()) {
-                        Text("Aucun lot disponible pour le moment.", fontSize = 12.sp, color = SlateMedium)
+                        Text("Aucun lot disponible pour le moment.", fontSize = 12.sp, color = dynamicSubtextColor)
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            lots.forEach { lot ->
-                                val lotOdds = odds.filter { it.lotN == lot.lotN }
-                                val lotFrais = fraisList.filter { f -> lotOdds.any { it.oddN == f.oddN } }
-                                val h = lotFrais.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
-                                val t = lotFrais.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
-                                val d = lotFrais.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
-                                val totalFraisLot = h + t + d
+                            lotBreakdowns.forEach { item ->
+                                val lot = item.lot
+                                val h = item.heberg
+                                val t = item.transp
+                                val d = item.divers
+                                val totalFraisLot = item.total
 
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
@@ -627,9 +656,9 @@ fun DashboardScreen(
 
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "${lot.libelle} • ${lotOdds.size} ODD rattachés",
+                                            text = "${lot.libelle} • ${item.oddsCount} ODD rattachés",
                                             fontSize = 11.sp,
-                                            color = SlateMedium,
+                                            color = dynamicSubtextColor,
                                             maxLines = 1
                                         )
 
@@ -679,28 +708,26 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    val sumGlobalSiteFrais = sites.sumOf { site ->
-                        val siteOdds = odds.filter { it.siteProvenance.equals(site, ignoreCase = true) }
-                        fraisList.filter { f -> siteOdds.any { it.oddN == f.oddN } }.sumOf { it.aComptabiliser }
+                    val siteBreakdowns = remember(sites, oddsByProvenance, fraisByOddN) {
+                        sites.map { site ->
+                            val siteOdds = oddsByProvenance[site.trim().lowercase()] ?: emptyList()
+                            val siteFrais = siteOdds.flatMap { fraisByOddN[it.oddN] ?: emptyList() }
+                            val h = siteFrais.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
+                            val t = siteFrais.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
+                            val d = siteFrais.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
+                            SiteFraisBreakdown(site, siteOdds.size, h, t, d, h + t + d)
+                        }
                     }
-                    val globalSiteH = sites.sumOf { site ->
-                        val siteOdds = odds.filter { it.siteProvenance.equals(site, ignoreCase = true) }
-                        fraisList.filter { f -> siteOdds.any { it.oddN == f.oddN } && f.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
-                    }
-                    val globalSiteT = sites.sumOf { site ->
-                        val siteOdds = odds.filter { it.siteProvenance.equals(site, ignoreCase = true) }
-                        fraisList.filter { f -> siteOdds.any { it.oddN == f.oddN } && f.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
-                    }
-                    val globalSiteD = sites.sumOf { site ->
-                        val siteOdds = odds.filter { it.siteProvenance.equals(site, ignoreCase = true) }
-                        fraisList.filter { f -> siteOdds.any { it.oddN == f.oddN } && f.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
-                    }
+                    val sumGlobalSiteFrais = remember(siteBreakdowns) { siteBreakdowns.sumOf { it.total } }
+                    val globalSiteH = remember(siteBreakdowns) { siteBreakdowns.sumOf { it.heberg } }
+                    val globalSiteT = remember(siteBreakdowns) { siteBreakdowns.sumOf { it.transp } }
+                    val globalSiteD = remember(siteBreakdowns) { siteBreakdowns.sumOf { it.divers } }
 
                     Text(
                         text = "Synthèse Globale par Site de Provenance (Total : %.3f TND)".format(sumGlobalSiteFrais),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = SlateMedium
+                        color = dynamicSubtextColor
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     FraisSplitBar(heberg = globalSiteH, transp = globalSiteT, divers = globalSiteD)
@@ -713,13 +740,12 @@ fun DashboardScreen(
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        sites.forEach { site ->
-                            val siteOdds = odds.filter { it.siteProvenance.equals(site, ignoreCase = true) }
-                            val siteFrais = fraisList.filter { f -> siteOdds.any { it.oddN == f.oddN } }
-                            val h = siteFrais.filter { it.categorie.contains("Héberg", true) }.sumOf { it.aComptabiliser }
-                            val t = siteFrais.filter { it.categorie.contains("Transp", true) }.sumOf { it.aComptabiliser }
-                            val d = siteFrais.filter { it.categorie.contains("Div", true) }.sumOf { it.aComptabiliser }
-                            val totalFraisSite = h + t + d
+                        siteBreakdowns.forEach { item ->
+                            val site = item.site
+                            val h = item.heberg
+                            val t = item.transp
+                            val d = item.divers
+                            val totalFraisSite = item.total
 
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
@@ -754,7 +780,7 @@ fun DashboardScreen(
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(site, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text("(${siteOdds.size} missions émises)", fontSize = 10.sp, color = SlateMedium)
+                                            Text("(${item.oddsCount} missions émises)", fontSize = 10.sp, color = dynamicSubtextColor)
                                         }
 
                                         Text(
@@ -799,7 +825,7 @@ fun DashboardScreen(
                         Text(
                             text = "En Dinars Tunisiens (TND)",
                             fontSize = 11.sp,
-                            color = SlateMedium
+                            color = dynamicSubtextColor
                         )
                     }
 
@@ -901,7 +927,7 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(dir, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Text("j", fontSize = 9.sp, color = SlateLight)
+                                Text("j", fontSize = 9.sp, color = dynamicSubtextColor)
                             }
                         }
                     }
@@ -989,12 +1015,14 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Compute workloads
-                    val workloadItems = techniciens.map { tech ->
-                        val techOdds = odds.filter { it.matricule == tech.matricule }
-                        val missionsCount = techOdds.size + tech.histMissions
-                        val totalCost = techOdds.sumOf { it.totalOdd }
-                        val totalJours = techOdds.sumOf { com.example.util.SiteDistances.getMissionDurationDays(it.dateDebut, it.dateFin) } + tech.histJours
-                        TechWorkloadItem(tech, missionsCount, totalCost, totalJours)
+                    val workloadItems = remember(techniciens, oddsByMatricule) {
+                        techniciens.map { tech ->
+                            val techOdds = oddsByMatricule[tech.matricule] ?: emptyList()
+                            val missionsCount = techOdds.size + tech.histMissions
+                            val totalCost = techOdds.sumOf { it.totalOdd }
+                            val totalJours = techOdds.sumOf { com.example.util.SiteDistances.getMissionDurationDays(it.dateDebut, it.dateFin) } + tech.histJours
+                            TechWorkloadItem(tech, missionsCount, totalCost, totalJours)
+                        }
                     }
 
                     // Sort in descending order according to the radio selection
@@ -1213,7 +1241,7 @@ fun DashboardScreen(
                                                 Text(
                                                     text = "${item.tech.matricule} • Échelle ${item.tech.echelle}",
                                                     fontSize = 10.sp,
-                                                    color = SlateMedium
+                                                    color = dynamicSubtextColor
                                                 )
                                             }
                                         }
@@ -1233,13 +1261,13 @@ fun DashboardScreen(
                                                         text = "${item.totalJours} j terrain",
                                                         fontWeight = FontWeight.Medium,
                                                         fontSize = 10.sp,
-                                                        color = SlateMedium
+                                                        color = dynamicSubtextColor
                                                     )
                                                     // 3ème ligne : Coût en couleur grisé
                                                     Text(
                                                         text = "Coût: %.3f TND".format(item.totalCost),
                                                         fontSize = 10.sp,
-                                                        color = SlateLight
+                                                        color = dynamicSubtextColor
                                                     )
                                                 }
                                                 WorkloadSortMode.COUT -> {
@@ -1255,13 +1283,13 @@ fun DashboardScreen(
                                                         text = "${item.totalJours} j terrain",
                                                         fontWeight = FontWeight.Medium,
                                                         fontSize = 10.sp,
-                                                        color = SlateMedium
+                                                        color = dynamicSubtextColor
                                                     )
                                                     // 3ème ligne : Nombre de missions en couleur grisé
                                                     Text(
                                                         text = "${item.missionsCount} missions",
                                                         fontSize = 10.sp,
-                                                        color = SlateLight
+                                                        color = dynamicSubtextColor
                                                     )
                                                 }
                                                 WorkloadSortMode.JOURS -> {
@@ -1277,13 +1305,13 @@ fun DashboardScreen(
                                                         text = "${item.missionsCount} missions",
                                                         fontWeight = FontWeight.Medium,
                                                         fontSize = 10.sp,
-                                                        color = SlateMedium
+                                                        color = dynamicSubtextColor
                                                     )
                                                     // 3ème ligne : Coût en couleur grisé
                                                     Text(
                                                         text = "Coût: %.3f TND".format(item.totalCost),
                                                         fontSize = 10.sp,
-                                                        color = SlateLight
+                                                        color = dynamicSubtextColor
                                                     )
                                                 }
                                             }
@@ -1347,10 +1375,10 @@ private fun FraisSplitBar(
                 .fillMaxWidth()
                 .height(height)
                 .clip(RoundedCornerShape(height / 2))
-                .background(Color(0xFFE2E8F0)),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            Text("Aucun frais comptabilisé", fontSize = 9.sp, color = SlateLight)
+            Text("Aucun frais comptabilisé", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
         val pHeberg = (h / total).toFloat().coerceIn(0f, 1f)
@@ -1448,7 +1476,8 @@ private fun KpiCard(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = color)
-            Text(subtitle, fontSize = 11.sp, color = SlateMedium)
+            val subColor = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color(0xFFCBD5E1) else SlateMedium
+            Text(subtitle, fontSize = 11.sp, color = subColor)
         }
     }
 }

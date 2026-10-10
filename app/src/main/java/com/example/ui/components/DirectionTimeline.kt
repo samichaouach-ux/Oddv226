@@ -119,7 +119,7 @@ fun DirectionTimeline(
                                 "Notif: --"
                             },
                             fontSize = 8.sp,
-                            color = SlateMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
 

@@ -89,6 +89,12 @@ fun LotDetailScreen(
     var selectedDirForValidation by remember { mutableStateOf<String?>(null) }
     var showLotSelectorMenu by remember { mutableStateOf(false) }
 
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val dynamicTextNavy = if (isDark) Color(0xFF93C5FD) else AviationNavy
+    val dynamicTextSub = if (isDark) Color(0xFFCBD5E1) else SlateMedium
+    val dynamicTextMuted = if (isDark) Color(0xFF94A3B8) else SlateLight
+    val dynamicWarm = if (isDark) Color(0xFFFDE68A) else Color(0xFF78350F)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -213,7 +219,7 @@ fun LotDetailScreen(
                                         text = "(+%.3f TND non comptab.)".format(totalLotNonComptabilise),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp,
-                                        color = SlateLight
+                                        color = dynamicTextMuted
                                     )
                                 }
                             }
@@ -223,7 +229,7 @@ fun LotDetailScreen(
                                 ),
                                 fontWeight = FontWeight.Normal,
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                             if (lot.detailDivers.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(3.dp))
@@ -455,6 +461,9 @@ private fun OddsTabContent(
     isReadOnly: Boolean = lot.figerLot,
     activeUserDir: String = ""
 ) {
+    val fraisByOdd = remember(fraisList) { fraisList.groupBy { it.oddN } }
+    val docsByOdd = remember(documents) { documents.groupBy { it.oddN } }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -514,7 +523,7 @@ private fun OddsTabContent(
                         Icon(
                             Icons.Default.FlightTakeoff,
                             contentDescription = null,
-                            tint = SlateLight,
+                            tint = dynamicTextMuted,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -527,15 +536,15 @@ private fun OddsTabContent(
                         Text(
                             "Cliquez sur 'Ajouter un Ordre de Déplacement' pour affecter une mission.",
                             fontSize = 12.sp,
-                            color = SlateLight
+                            color = dynamicTextMuted
                         )
                     }
                 }
             }
         } else {
             items(odds, key = { it.oddN }) { odd ->
-                val oddFrais = fraisList.filter { it.oddN == odd.oddN }
-                val oddDocs = documents.filter { it.oddN == odd.oddN }
+                val oddFrais = fraisByOdd[odd.oddN] ?: emptyList()
+                val oddDocs = docsByOdd[odd.oddN] ?: emptyList()
                 val dureeJours = SiteDistances.getMissionDurationDays(odd.dateDebut, odd.dateFin)
                 val tauxMissionJournalier = SiteDistances.getMissionDailyRateByTypeAndEchelle(
                     missionType = odd.mission,
@@ -604,14 +613,14 @@ private fun OddsTabContent(
                                             text = "(+%.3f)".format(totalOddFraisNonComptabilises),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 10.sp,
-                                            color = SlateLight
+                                            color = dynamicTextMuted
                                         )
                                     }
                                 }
                                 Text(
                                     text = "Net à payer ODD",
                                     fontSize = 10.sp,
-                                    color = SlateMedium
+                                    color = dynamicTextSub
                                 )
                             }
                         }
@@ -630,7 +639,7 @@ private fun OddsTabContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.FlightTakeoff, contentDescription = null, modifier = Modifier.size(15.dp), tint = SkyAccent)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${odd.siteProvenance} ➔ ${odd.siteIntervention}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AviationNavy)
+                            Text("${odd.siteProvenance} ➔ ${odd.siteIntervention}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = dynamicTextNavy)
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -726,8 +735,8 @@ private fun OddsTabContent(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Dépenses non comptabilisées (${oddFrais.count { !it.estComptabilise }}) :", fontSize = 11.sp, color = SlateLight)
-                                        Text("%.3f TND (déduit)".format(totalOddFraisNonComptabilises), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = SlateLight)
+                                        Text("Dépenses non comptabilisées (${oddFrais.count { !it.estComptabilise }}) :", fontSize = 11.sp, color = dynamicTextMuted)
+                                        Text("%.3f TND (déduit)".format(totalOddFraisNonComptabilises), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = dynamicTextMuted)
                                     }
                                 }
                                 if (odd.avanceSurMission > 0.0) {
@@ -785,7 +794,7 @@ private fun OddsTabContent(
                                         text = "${oddDocs.size} Justificatif(s)",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF78350F)
+                                        color = dynamicWarm
                                     )
                                 }
                             }
@@ -842,7 +851,7 @@ private fun OddsTabContent(
                                     Text(
                                         text = "Aucune dépense saisie pour cet ODD.",
                                         fontSize = 11.sp,
-                                        color = SlateMedium,
+                                        color = dynamicTextSub,
                                         modifier = Modifier.padding(8.dp)
                                     )
                                 }
@@ -890,7 +899,7 @@ private fun OddsTabContent(
                                                     Text(
                                                         text = "${f.quantite} ${f.unite} × %.3f TND".format(f.pUnit),
                                                         fontSize = 10.sp,
-                                                        color = SlateMedium
+                                                        color = dynamicTextSub
                                                     )
                                                 }
 
@@ -900,7 +909,7 @@ private fun OddsTabContent(
                                                             text = "%.3f TND".format(f.montant),
                                                             fontWeight = FontWeight.ExtraBold,
                                                             fontSize = 12.sp,
-                                                            color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else SlateLight
+                                                            color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else dynamicTextMuted
                                                         )
                                                         Surface(
                                                             shape = RoundedCornerShape(4.dp),
@@ -962,7 +971,7 @@ private fun OddsTabContent(
                                     text = "📎 Pièces de rattachement (${oddDocs.size})",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
-                                    color = AviationNavy
+                                    color = dynamicTextNavy
                                 )
                                 if (!isReadOnly) {
                                     TextButton(
@@ -985,7 +994,7 @@ private fun OddsTabContent(
                                     Text(
                                         text = "Aucune pièce justificative rattachée à cet ODD.",
                                         fontSize = 11.sp,
-                                        color = SlateMedium,
+                                        color = dynamicTextSub,
                                         modifier = Modifier.padding(8.dp)
                                     )
                                 }
@@ -1013,7 +1022,7 @@ private fun OddsTabContent(
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(doc.typeDocument, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                                     Text("Objet : ${doc.objet}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    Text("Date : ${dateFormat.format(Date(doc.dateEnvoie))}", fontSize = 9.sp, color = SlateLight)
+                                                    Text("Date : ${dateFormat.format(Date(doc.dateEnvoie))}", fontSize = 9.sp, color = dynamicTextMuted)
                                                 }
                                                 Icon(
                                                     Icons.Default.CheckCircle,
@@ -1223,7 +1232,7 @@ private fun FraisTabContent(
                             Text(
                                 text = "${f.quantite} ${f.unite} × %.3f TND".format(f.pUnit),
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                         }
 
@@ -1232,7 +1241,7 @@ private fun FraisTabContent(
                                 text = "%.3f TND".format(f.montant),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 14.sp,
-                                color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else SlateLight
+                                color = if (f.estComptabilise) MaterialTheme.colorScheme.primary else dynamicTextMuted
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Surface(
@@ -1338,7 +1347,7 @@ private fun JustificatifsTabContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Description, contentDescription = null, tint = SlateLight, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.Description, contentDescription = null, tint = dynamicTextMuted, modifier = Modifier.size(48.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "Aucun justificatif rattaché à ce lot.",
@@ -1348,7 +1357,7 @@ private fun JustificatifsTabContent(
                         Text(
                             "Factures d'hôtel, tickets autoroute, billets de train/avion...",
                             fontSize = 11.sp,
-                            color = SlateLight
+                            color = dynamicTextMuted
                         )
                     }
                 }
@@ -1381,7 +1390,7 @@ private fun JustificatifsTabContent(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(doc.typeDocument, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text("Objet : ${doc.objet}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Rattaché à l'ODD : ${doc.oddN} • Le ${dateFormat.format(Date(doc.dateEnvoie))}", fontSize = 11.sp, color = SlateMedium)
+                            Text("Rattaché à l'ODD : ${doc.oddN} • Le ${dateFormat.format(Date(doc.dateEnvoie))}", fontSize = 11.sp, color = dynamicTextSub)
                         }
 
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = EmeraldGreen, modifier = Modifier.size(20.dp))
@@ -1462,7 +1471,7 @@ private fun ValidationTabContent(
                             text = if (lot.directionActuelle == "ARCHIVE") "Dossier Validé & Archivé Définitivement (DAF)" else "Étape Actuelle : ${lot.directionActuelle}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = if (lot.directionActuelle == "ARCHIVE") EmeraldGreen else Color(0xFF78350F)
+                            color = if (lot.directionActuelle == "ARCHIVE") EmeraldGreen else dynamicWarm
                         )
                     }
 
@@ -1473,7 +1482,7 @@ private fun ValidationTabContent(
                             text = "Ce lot est en attente du visa de la direction ${lot.directionActuelle}. " +
                                     "Consultez le PDF et enregistrez la décision d'approbation ou de rejet.",
                             fontSize = 12.sp,
-                            color = Color(0xFF78350F)
+                            color = dynamicWarm
                         )
                         Spacer(modifier = Modifier.height(10.dp))
 
@@ -1488,8 +1497,8 @@ private fun ValidationTabContent(
                                 enabled = canViser,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = EmeraldGreen,
-                                    disabledContainerColor = Color(0xFFE2E8F0),
-                                    disabledContentColor = SlateMedium
+                                    disabledContainerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                                    disabledContentColor = dynamicTextMuted
                                 ),
                                 modifier = Modifier.weight(1.2f)
                             ) {
@@ -1620,7 +1629,7 @@ private fun ValidationTabContent(
                             Text(
                                 text = "Signé par : ${valStep.signataire} le ${valStep.dateValidation?.let { dateFormat.format(Date(it)) } ?: ""}",
                                 fontSize = 11.sp,
-                                color = SlateMedium
+                                color = dynamicTextSub
                             )
                             if (valStep.commentaire.isNotBlank()) {
                                 Text("« ${valStep.commentaire} »", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1628,7 +1637,7 @@ private fun ValidationTabContent(
                         } else if (isRejected) {
                             Text("Rejeté : ${valStep.commentaire}", fontSize = 11.sp, color = CrimsonRed)
                         } else {
-                            Text("En attente de transmission / signature", fontSize = 11.sp, color = SlateLight)
+                            Text("En attente de transmission / signature", fontSize = 11.sp, color = dynamicTextMuted)
                         }
                     }
 
@@ -1642,7 +1651,7 @@ private fun ValidationTabContent(
                         tint = when {
                             isValidated -> EmeraldGreen
                             isRejected -> CrimsonRed
-                            else -> SlateLight
+                            else -> dynamicTextMuted
                         },
                         modifier = Modifier.size(20.dp)
                     )

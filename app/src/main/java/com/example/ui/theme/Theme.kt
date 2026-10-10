@@ -10,6 +10,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
 fun getAppColorScheme(palette: AppPalette, isDark: Boolean): ColorScheme {
@@ -118,3 +119,28 @@ fun MyApplicationTheme(
         content = content
     )
 }
+
+val isAppDark: Boolean
+    @Composable
+    get() = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+val isDark: Boolean
+    @Composable
+    get() = MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+val dynamicTextNavy: Color
+    @Composable
+    get() = if (isDark) Color(0xFF93C5FD) else AviationNavy
+
+val dynamicTextSub: Color
+    @Composable
+    get() = if (isDark) Color(0xFFCBD5E1) else SlateMedium
+
+val dynamicTextMuted: Color
+    @Composable
+    get() = if (isDark) Color(0xFF94A3B8) else SlateLight
+
+val dynamicWarm: Color
+    @Composable
+    get() = if (isDark) Color(0xFFFDE68A) else Color(0xFF78350F)
+

@@ -156,7 +156,7 @@ fun ValidationCircuitScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Créé le : ${dateFormat.format(Date(lot.dateCreation))}", fontSize = 11.sp, color = SlateMedium)
+                                Text("Créé le : ${dateFormat.format(Date(lot.dateCreation))}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("Total : %.3f TND".format(lot.totalCoutOdd), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             }
 
@@ -187,9 +187,9 @@ fun ValidationCircuitScreen(
                                         onClick = { onTriggerNotification(lot.lotN) },
                                         modifier = Modifier.weight(1.2f)
                                     ) {
-                                        Icon(Icons.Default.Campaign, contentDescription = null, tint = AviationBlue, modifier = Modifier.size(15.dp))
+                                        Icon(Icons.Default.Campaign, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
                                         Spacer(modifier = Modifier.width(3.dp))
-                                        Text("Notifier", fontSize = 11.sp, color = AviationBlue)
+                                        Text("Notifier", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
 

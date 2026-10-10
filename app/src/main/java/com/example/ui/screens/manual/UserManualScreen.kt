@@ -474,7 +474,7 @@ fun UserManualScreen(
                                 text = "Tunisair Technics • Gestion des Ordres de Déplacement & Frais",
                                 fontSize = zsp(11),
                                 lineHeight = zsp(15),
-                                color = SlateLight
+                                color = Color(0xFFE2E8F0)
                             )
                         }
                     }
