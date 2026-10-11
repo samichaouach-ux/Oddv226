@@ -67,6 +67,7 @@ fun UserManualScreen(
     // Text Zoom State (1.0 = 100%, ranging from 0.75f / 75% to 2.0f / 200%)
     var zoomLevel by remember { mutableFloatStateOf(1.0f) }
     var showContinuousSlider by remember { mutableStateOf(false) }
+    var isHeaderPanelExpanded by remember { mutableStateOf(true) }
 
     // Dynamic font scaling helper
     val zsp: (Number) -> TextUnit = { size -> (size.toFloat() * zoomLevel).sp }
@@ -143,6 +144,28 @@ fun UserManualScreen(
 
                             Spacer(modifier = Modifier.width(6.dp))
 
+                            // BOUTON PLIER / DÉPLIER (HOMMAGE & RECHERCHE)
+                            FilledTonalButton(
+                                onClick = { isHeaderPanelExpanded = !isHeaderPanelExpanded },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isHeaderPanelExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isHeaderPanelExpanded) "Plier" else "Déplier",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
                             // Quick zoom indicator in header
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
@@ -182,73 +205,78 @@ fun UserManualScreen(
                         }
                     }
 
-                    // Hommage & Texte officiel placé au-dessous du bouton téléchargement
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
+                    // Zone pliable/dépliable : Hommage & Remerciements + Barre de recherche
+                    AnimatedVisibility(visible = isHeaderPanelExpanded) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Hommage & Texte officiel placé au-dessous du bouton téléchargement
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                                 modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(CircleShape)
-                                    .background(AmberGold.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.WorkspacePremium,
-                                    contentDescription = null,
-                                    tint = AmberGold,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(AmberGold.copy(alpha = 0.2f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.WorkspacePremium,
+                                            contentDescription = null,
+                                            tint = AmberGold,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = "Hommage & Remerciements — Madame Nahla Zaoui",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "L'application zODD V.2-26 et l'ensemble de ses règles de gestion honorent la contribution déterminante de Madame Nahla Zaoui (Chargée de Gestion & Traitement des lots) pour sa rigueur, son expertise métier et son dévouement constant dans la conformité des ordres de déplacement.",
+                                            fontSize = 10.5.sp,
+                                            lineHeight = 14.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "Hommage & Remerciements — Madame Nahla Zaoui",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "L'application zODD V.2-26 et l'ensemble de ses règles de gestion honorent la contribution déterminante de Madame Nahla Zaoui (Chargée de Gestion & Traitement des lots) pour sa rigueur, son expertise métier et son dévouement constant dans la conformité des ordres de déplacement.",
-                                    fontSize = 10.5.sp,
-                                    lineHeight = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+
+                            // Search inside manual
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = { Text("Rechercher dans le manuel (Figer, ODD, Frais, Distances...)...", fontSize = 12.sp) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                trailingIcon = if (searchQuery.isNotEmpty()) {
+                                    {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(Icons.Default.Clear, contentDescription = "Effacer", modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                } else null,
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
                         }
                     }
 
-                    // Search inside manual
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Rechercher dans le manuel (Figer, ODD, Frais, Distances...)...", fontSize = 12.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = if (searchQuery.isNotEmpty()) {
-                            {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Effacer", modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        } else null,
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-
-                    // Zoom and Display Controls Toolbar
+                    // Zoom and Display Controls Toolbar (Toujours visible)
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                         modifier = Modifier.fillMaxWidth()
